@@ -4,16 +4,16 @@ public class AxisControl implements Control {
     float x = 0;
     float maxValue = 1;
     float minValue = -1;
-    
+
     public AxisControl(float x, float maxValue, float minValue) {
         super();
         this.x = x;
         this.maxValue = maxValue;
         this.minValue = minValue;
-        
+
         setX(x);
     }
-    
+
     public AxisControl() {
         super();
     }
@@ -48,6 +48,5 @@ public class AxisControl implements Control {
     public ControlType getControlType() {
         return ControlType.AXIS;
     }
-    
-    
+
 }

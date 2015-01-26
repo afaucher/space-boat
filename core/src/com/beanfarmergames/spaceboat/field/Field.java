@@ -20,7 +20,7 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext> {
 
     private World world;
     public static final float G = -0.001f;
-    private static final float WORLD_STEPS_MILISECOND = 0.1f;
+    //private static final float WORLD_STEPS_MILISECOND = 0.1f;
 
     private List<UpdateCallback> updateCallbacks = new ArrayList<UpdateCallback>();
     private List<RenderCallback<RenderContext>> renderCallbacks = new ArrayList<RenderCallback<RenderContext>>();
@@ -40,14 +40,12 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext> {
         updateCallbacks.clear();
         renderCallbacks.clear();
         boats.clear();
-        
+
         int x = Gdx.app.getGraphics().getWidth();
         int y = Gdx.app.getGraphics().getHeight();
         extents = new Rectangle(0, 0, x, y);
 
         createWall(world, extents);
-
-        
 
         /*
          * BodyDef bd = new BodyDef(); bd.allowSleep = false; bd.position.set(0,

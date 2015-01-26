@@ -4,7 +4,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.beanfarmergames.spaceboat.boat.Boat;
 
 public class RenderContextImpl implements RenderContext {
-    
+
     private Boat boat;
     private ShapeRenderer renderer;
     private RenderLayer renderLayer;
