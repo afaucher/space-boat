@@ -124,11 +124,28 @@ public class SpaceBoat extends ApplicationAdapter implements InputProcessor {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+        
+        /*int width = Gdx.graphics.getWidth();
+        int height = Gdx.graphics.getHeight();
+        
+        Boat firstBoat = field.getBoats().get(0);
+        float thrust = screenY / height;
+        if (screenX < width / 2) {
+            firstBoat.getBoatControl().getLeft().setX(thrust);
+        } else {
+            firstBoat.getBoatControl().getRight().setX(thrust);
+        }*/
+        
         return false;
     }
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+        
+        /*Boat firstBoat = field.getBoats().get(0);
+        firstBoat.getBoatControl().getRight().setX(0);
+        firstBoat.getBoatControl().getLeft().setX(0);*/
+        
         return false;
     }
 
