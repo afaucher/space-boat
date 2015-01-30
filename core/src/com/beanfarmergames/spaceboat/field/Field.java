@@ -46,22 +46,6 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext> {
         extents = new Rectangle(0, 0, x, y);
 
         createWall(world, extents);
-
-        /*
-         * BodyDef bd = new BodyDef(); bd.allowSleep = false; bd.position.set(0,
-         * 0);
-         * 
-         * Body body = world.createBody(bd); body.setUserData(null);
-         * 
-         * EdgeShape es = new EdgeShape(); es.set(-500,-50,500,-50);
-         * 
-         * FixtureDef fdef = new FixtureDef(); fdef.shape = es; fdef.density =
-         * 1.0f; fdef.friction = 0.5f; fdef.restitution = 0.6f;
-         * body.createFixture(fdef);
-         * 
-         * 
-         * body.setType(BodyDef.BodyType.StaticBody);
-         */
     }
 
     private static FixtureDef wallFixture(float x1, float y1, float x2, float y2) {

@@ -21,7 +21,7 @@ import com.beanfarmergames.spaceboat.field.Field;
 
 public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
 
-    private static final float MAX_THRUST_N = 20.0f;
+    private static final float MAX_THRUST_N = 10.0f;
     private static final float PART_RAIDIUS = 15;
 
     private final Body body;
@@ -71,6 +71,11 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
         field.spawnBoat(this);
     }
 
+    public void spawn(Vector2 spwan) {
+        body.setAngularVelocity(0);
+        body.setTransform(spwan.cpy(), 0);
+    }
+
     public BoatControl getBoatControl() {
         return controls;
     }
@@ -89,8 +94,16 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
         r.setColor(1, 0, 0, 1);
         r.circle(leftFixturePosition.x, leftFixturePosition.y, PART_RAIDIUS);
         r.circle(rightFixturePosition.x, rightFixturePosition.y, PART_RAIDIUS);
-        r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x + 20, leftFixturePosition.y);
-        r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x, leftFixturePosition.y + 20);
+
+        r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x + 40, leftFixturePosition.y);
+        r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x, leftFixturePosition.y + 40);
+        r.setColor(0, 1, 0, 1);
+
+        float forwardRad = body.getAngle() + (float)Math.PI / 2.0f;
+        float proboscusLength = 100;
+        Vector2 p = body.getPosition();
+        r.rectLine(p.x, p.y,
+                p.x + proboscusLength * (float) Math.cos(forwardRad), p.y + proboscusLength * (float) Math.sin(forwardRad), 5);
         r.end();
     }
 
@@ -116,9 +129,17 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
     public void updateCallback(long miliseconds) {
 
         AxisControl leftAxis = controls.getLeft();
-        applyAxisThrustToBody(body, leftAxis.getX(), miliseconds, left);
         AxisControl rightAxis = controls.getRight();
-        applyAxisThrustToBody(body, rightAxis.getX(), miliseconds, right);
+        float l = leftAxis.getX();
+        float r = rightAxis.getX();
+        float blended = (r + l) / 2;
+        float blend = 0.9f;
+        l = l * blend + blended * (1-blend);
+        r = r * blend + blended * (1-blend);
+        
+        applyAxisThrustToBody(body, l, miliseconds, left);
+        
+        applyAxisThrustToBody(body, r, miliseconds, right);
     }
 
 }

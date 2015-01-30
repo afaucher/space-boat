@@ -1,9 +1,12 @@
 package com.beanfarmergames.spaceboat;
 
-import com.badlogic.gdx.ApplicationAdapter;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -13,7 +16,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.beanfarmergames.spaceboat.boat.Boat;
 import com.beanfarmergames.spaceboat.field.Field;
 
-public class SpaceBoat extends ApplicationAdapter implements InputProcessor {
+public class SpaceBoat implements Screen, InputProcessor {
     private OrthographicCamera camera = null;
     private SpriteBatch batch = null;
     private Texture img = null;
@@ -21,9 +24,15 @@ public class SpaceBoat extends ApplicationAdapter implements InputProcessor {
 
     private Field field;
     private RenderContextImpl renderContext = new RenderContextImpl();
+    private List<Boat> boats = new ArrayList<Boat>();
+    
+    private Vector2 spawn = null;
+    
+    public List<Boat> getBoats() {
+        return boats;
+    }
 
-    @Override
-    public void create() {
+    public SpaceBoat() {
         camera = new OrthographicCamera();
         int x = Gdx.app.getGraphics().getWidth();
         int y = Gdx.app.getGraphics().getHeight();
@@ -39,12 +48,14 @@ public class SpaceBoat extends ApplicationAdapter implements InputProcessor {
         field = new Field();
         field.resetLevel();
 
-        Vector2 spawn = new Vector2(x / 2, y / 2);
-        new Boat(field, spawn);
+        spawn = new Vector2(x / 2, y / 2);
+        boats.add(new Boat(field, spawn));
+
+       
     }
 
     @Override
-    public void render() {
+    public void render(float delta) {
         float tickTimeSeconds = Gdx.graphics.getDeltaTime();
         long tickTimeMiliseconds = (long) (tickTimeSeconds * 1000);
         field.updateCallback(tickTimeMiliseconds);
@@ -96,6 +107,9 @@ public class SpaceBoat extends ApplicationAdapter implements InputProcessor {
         case Input.Keys.W:
             firstBoat.getBoatControl().getRight().setX(1);
             break;
+        case Input.Keys.R:
+            firstBoat.spawn(spawn);
+            break;
         }
 
         return true;
@@ -124,28 +138,29 @@ public class SpaceBoat extends ApplicationAdapter implements InputProcessor {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        
-        /*int width = Gdx.graphics.getWidth();
-        int height = Gdx.graphics.getHeight();
-        
-        Boat firstBoat = field.getBoats().get(0);
-        float thrust = screenY / height;
-        if (screenX < width / 2) {
-            firstBoat.getBoatControl().getLeft().setX(thrust);
-        } else {
-            firstBoat.getBoatControl().getRight().setX(thrust);
-        }*/
-        
+
+        /*
+         * int width = Gdx.graphics.getWidth(); int height =
+         * Gdx.graphics.getHeight();
+         * 
+         * Boat firstBoat = field.getBoats().get(0); float thrust = screenY /
+         * height; if (screenX < width / 2) {
+         * firstBoat.getBoatControl().getLeft().setX(thrust); } else {
+         * firstBoat.getBoatControl().getRight().setX(thrust); }
+         */
+
         return false;
     }
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        
-        /*Boat firstBoat = field.getBoats().get(0);
-        firstBoat.getBoatControl().getRight().setX(0);
-        firstBoat.getBoatControl().getLeft().setX(0);*/
-        
+
+        /*
+         * Boat firstBoat = field.getBoats().get(0);
+         * firstBoat.getBoatControl().getRight().setX(0);
+         * firstBoat.getBoatControl().getLeft().setX(0);
+         */
+
         return false;
     }
 
@@ -162,5 +177,41 @@ public class SpaceBoat extends ApplicationAdapter implements InputProcessor {
     @Override
     public boolean scrolled(int amount) {
         return false;
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void pause() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void resume() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void dispose() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void show() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void hide() {
+        // TODO Auto-generated method stub
+
     }
 }
