@@ -87,6 +87,8 @@ public class ControlScreen implements Screen {
 
     @Override
     public void show() {
+        
+        
         table.add(pad).size(150,150).padBottom(20).row();
         table.add(debugLabel).size(150, 50).padBottom(10).row();
 
