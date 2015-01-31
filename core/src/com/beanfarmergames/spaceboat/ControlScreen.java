@@ -44,7 +44,7 @@ public class ControlScreen implements Screen {
     public void render(float delta) {
         
         //Try and discover or publish periodically
-        //TODO: This code is garbage
+        //TODO: This code is garbage, don't look.
         if (!client.isConnected()) {
             //TODO: THIS BLOCKS THE UI
             InetAddress address = client.discoverHost(54777, 5000);
@@ -52,8 +52,10 @@ public class ControlScreen implements Screen {
             if (address != null) {
                 lastTickTimeSeconds = 0;
                 try {
+                    //TODO: SO DOES THIS
                     client.connect(100, address, 54555, 54777);
                 } catch (IOException e) {
+                    //TODO: THIS MIGHT BE BAD
                     //Ignore
                 }
             }
@@ -88,9 +90,11 @@ public class ControlScreen implements Screen {
     @Override
     public void show() {
         
-        
-        table.add(pad).size(150,150).padBottom(20).row();
-        table.add(debugLabel).size(150, 50).padBottom(10).row();
+        int x = Gdx.graphics.getWidth();
+        int y = Gdx.graphics.getHeight();
+        int padSize = Math.min(x, y);
+        table.add(pad).size(padSize,padSize);
+        table.add(debugLabel).size(x - padSize, padSize).row();
 
         table.setFillParent(true);
         stage.addActor(table);
