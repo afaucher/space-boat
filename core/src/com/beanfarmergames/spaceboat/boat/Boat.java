@@ -1,5 +1,11 @@
 package com.beanfarmergames.spaceboat.boat;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.g2d.ParticleEffect;
+import com.badlogic.gdx.graphics.g2d.ParticleEffectPool;
+import com.badlogic.gdx.graphics.g2d.ParticleEmitter;
+import com.badlogic.gdx.graphics.g2d.ParticleEmitter.ScaledNumericValue;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.MathUtils;
@@ -21,13 +27,20 @@ import com.beanfarmergames.spaceboat.field.Field;
 
 public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
 
+    private static final float JET_EMISSION_RATE = 100.0f;
+    private static final int JET_SPREAD_ANGLE_DEG = 10;
+    private static final float STEERING_BLENDING_FACTOR = 0.9f;
     private static final float MAX_THRUST_N = 10.0f;
     private static final float PART_RAIDIUS = 15;
+    private static final float PART_DISTANCE = 10.0f;
 
     private final Body body;
     private final Field field;
     private final BoatControl controls = new BoatControl();
     private final Fixture left, right;
+    private SpriteBatch batch = null;
+
+    ParticleEffect[] jetEffect = new ParticleEffect[2];
 
     private static Fixture attachShape(Body body, Vector2 offset, float radius, Object userData) {
         Fixture fixture = null;
@@ -51,6 +64,7 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
     public Boat(final Field field, Vector2 spawn) {
         this.field = field;
 
+        // Build Body
         World world = field.getWorld();
 
         BodyDef bd = new BodyDef();
@@ -59,16 +73,25 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
         body = world.createBody(bd);
         body.setBullet(true);
         body.setAngularDamping(0.01f);
-        body.setLinearDamping(0.01f);
+        body.setLinearDamping(0.005f);
 
         body.setType(BodyDef.BodyType.DynamicBody);
 
-        left = attachShape(body, new Vector2(-5, 0), PART_RAIDIUS, this);
-        right = attachShape(body, new Vector2(5, 0), PART_RAIDIUS, this);
+        left = attachShape(body, new Vector2(-PART_DISTANCE / 2, 0), PART_RAIDIUS, this);
+        right = attachShape(body, new Vector2(PART_DISTANCE / 2, 0), PART_RAIDIUS, this);
 
+        // Insert into field
         field.registerUpdateCallback(this);
         field.registerRenderCallback(this);
         field.spawnBoat(this);
+
+        // Setup particles
+        batch = new SpriteBatch();
+        for (int i = 0; i < jetEffect.length; i++) {
+            jetEffect[i] = new ParticleEffect();
+            jetEffect[i].load(Gdx.files.internal("particles/jet.p"), Gdx.files.internal(""));
+            jetEffect[i].start();
+        }
     }
 
     public void spawn(Vector2 spwan) {
@@ -90,6 +113,12 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
         Vector2 leftFixturePosition = PhysicsUtil.getWorldFixturePosition(left);
         Vector2 rightFixturePosition = PhysicsUtil.getWorldFixturePosition(right);
 
+        batch.begin();
+        for (int i = 0; i < jetEffect.length; i++) {
+            jetEffect[i].draw(batch);
+        }
+        batch.end();
+
         r.begin(ShapeType.Filled);
         r.setColor(1, 0, 0, 1);
         r.circle(leftFixturePosition.x, leftFixturePosition.y, PART_RAIDIUS);
@@ -99,11 +128,11 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
         r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x, leftFixturePosition.y + 40);
         r.setColor(0, 1, 0, 1);
 
-        float forwardRad = body.getAngle() + (float)Math.PI / 2.0f;
+        float forwardRad = body.getAngle() + (float) Math.PI / 2.0f;
         float proboscusLength = 100;
         Vector2 p = body.getPosition();
-        r.rectLine(p.x, p.y,
-                p.x + proboscusLength * (float) Math.cos(forwardRad), p.y + proboscusLength * (float) Math.sin(forwardRad), 5);
+        r.rectLine(p.x, p.y, p.x + proboscusLength * (float) Math.cos(forwardRad),
+                p.y + proboscusLength * (float) Math.sin(forwardRad), 5);
         r.end();
     }
 
@@ -130,16 +159,44 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
 
         AxisControl leftAxis = controls.getLeft();
         AxisControl rightAxis = controls.getRight();
+        //We blend the controls together to avoid spinning in place
         float l = leftAxis.getX();
         float r = rightAxis.getX();
         float blended = (r + l) / 2;
-        float blend = 0.9f;
-        l = l * blend + blended * (1-blend);
-        r = r * blend + blended * (1-blend);
-        
+        float blend = STEERING_BLENDING_FACTOR;
+        l = l * blend + blended * (1 - blend);
+        r = r * blend + blended * (1 - blend);
+
         applyAxisThrustToBody(body, l, miliseconds, left);
-        
         applyAxisThrustToBody(body, r, miliseconds, right);
+
+        // Jets
+        float deltaSeconds = miliseconds / 1000.0f;
+        updateJetEffect(jetEffect[0], left, l, deltaSeconds);
+        updateJetEffect(jetEffect[1], right, r, deltaSeconds);
+    }
+    
+    private void updateJetEffect(ParticleEffect pe, Fixture fixture, float scale, float deltaSeconds) {
+        ParticleEmitter e = pe.getEmitters().first();
+        
+        Vector2 fixturePosition = PhysicsUtil.getWorldFixturePosition(fixture);
+        e.setPosition(fixturePosition.x, fixturePosition.y);
+        
+        //Point along -y (down)
+        float bodyAngle = body.getAngle() + 270;
+        float jetSpread = JET_SPREAD_ANGLE_DEG;
+        
+        ScaledNumericValue jetAngle = e.getAngle();
+        jetAngle.setHigh(bodyAngle - jetSpread, bodyAngle + jetSpread);
+        jetAngle.setLow(bodyAngle);
+        ScaledNumericValue jetRate = e.getEmission();
+        //We smooth the scale a bit so it doesn't drop off as fast
+        float jetEmissionRate = JET_EMISSION_RATE * (float)Math.sqrt(scale);
+        Gdx.app.log("Emission Rate", "R:" + jetEmissionRate);
+        jetRate.setHigh(jetEmissionRate, jetEmissionRate);
+        jetRate.setLow(jetEmissionRate, jetEmissionRate);
+        
+        pe.update(deltaSeconds);
     }
 
 }
