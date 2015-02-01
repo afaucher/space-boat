@@ -9,11 +9,13 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
 import com.badlogic.gdx.utils.TimeUtils;
+import com.beanfarmergames.spaceboat.net.PlayerData;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
 
@@ -31,32 +33,47 @@ public class ControlScreen implements Screen {
     
     private Touchpad pad = new Touchpad(10, skin);
     private Label debugLabel = new Label("",skin);
+    private Button[] buttons = new Button[]{
+        new Button(skin),
+        new Button(skin),
+        new Button(skin),
+    };
+    private PlayerData playerData = new PlayerData();
     
     public ControlScreen() {
         super();
         client = new Client();
         Kryo kryo = client.getKryo();
         kryo.register(Vector2.class);
-        client.start();
+        kryo.register(PlayerData.class);
+        //client.start();
+        playerData.setName("Ducky");
     }
 
     @Override
     public void render(float delta) {
         
+        try {
+            client.update(0);
+        } catch (IOException e) {
+            Gdx.app.log("Client", e.getMessage());
+        }
+        
         //Try and discover or publish periodically
         //TODO: This code is garbage, don't look.
         if (!client.isConnected()) {
             //TODO: THIS BLOCKS THE UI
-            InetAddress address = client.discoverHost(54777, 5000);
+            InetAddress address = client.discoverHost(54777, 100);
             
             if (address != null) {
                 lastTickTimeSeconds = 0;
                 try {
                     //TODO: SO DOES THIS
                     client.connect(100, address, 54555, 54777);
+                    client.sendTCP(playerData);
                 } catch (IOException e) {
                     //TODO: THIS MIGHT BE BAD
-                    //Ignore
+                    Gdx.app.log("Client", e.getMessage());
                 }
             }
         } else {
@@ -68,7 +85,9 @@ public class ControlScreen implements Screen {
                 float y = pad.getKnobPercentY();
                 
                 client.sendTCP(new Vector2(x,y));
-                debugLabel.setText("X:" + x + ",Y:" + y + ",T:" + tickTimeSeconds);
+                String labelText = "Connected: " + client.isConnected();
+                labelText += "\n Ping: " + client.getReturnTripTime();
+                debugLabel.setText(labelText);
                 
                 lastTickTimeSeconds = tickTimeSeconds;
             }
@@ -92,9 +111,15 @@ public class ControlScreen implements Screen {
         
         int x = Gdx.graphics.getWidth();
         int y = Gdx.graphics.getHeight();
-        int padSize = Math.min(x, y);
+        int padPadding = 50;
+        int padSize = Math.min(x, y) - padPadding;
+        int buttonSize = 30;
+        
         table.add(pad).size(padSize,padSize);
-        table.add(debugLabel).size(x - padSize, padSize).row();
+        table.add(buttons[0]).size(buttonSize);
+        table.add(buttons[1]).size(buttonSize);
+        table.add(buttons[2]).size(buttonSize).row();
+        table.add(debugLabel).size(padSize, padPadding).row();
 
         table.setFillParent(true);
         stage.addActor(table);

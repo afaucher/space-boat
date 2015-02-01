@@ -1,6 +1,7 @@
 package com.beanfarmergames.spaceboat.boat;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.ParticleEffectPool;
 import com.badlogic.gdx.graphics.g2d.ParticleEmitter;
@@ -32,7 +33,7 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
     private static final float STEERING_BLENDING_FACTOR = 0.9f;
     private static final float MAX_THRUST_N = 10.0f;
     private static final float PART_RAIDIUS = 15;
-    private static final float PART_DISTANCE = 10.0f;
+    private static final float PART_DISTANCE = 30.0f;
 
     private final Body body;
     private final Field field;
@@ -40,7 +41,8 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
     private final Fixture left, right;
     private SpriteBatch batch = null;
 
-    ParticleEffect[] jetEffect = new ParticleEffect[2];
+    private ParticleEffect[] jetEffect = new ParticleEffect[2];
+    private Texture ship = new Texture("art/ship.png");
 
     private static Fixture attachShape(Body body, Vector2 offset, float radius, Object userData) {
         Fixture fixture = null;
@@ -93,6 +95,16 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
             jetEffect[i].start();
         }
     }
+    
+    public void destroy() {
+        if (body != null) {
+            World world = field.getWorld();
+            world.destroyBody(body);
+            //body = null;
+        }
+        field.unregisterUpdateCallback(this);
+        field.unregisterRenderCallback(this);
+    }
 
     public void spawn(Vector2 spwan) {
         body.setAngularVelocity(0);
@@ -134,6 +146,13 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
         r.rectLine(p.x, p.y, p.x + proboscusLength * (float) Math.cos(forwardRad),
                 p.y + proboscusLength * (float) Math.sin(forwardRad), 5);
         r.end();
+        
+        batch.begin();
+        float width = PART_RAIDIUS * 2 + PART_DISTANCE;
+        float height = PART_RAIDIUS * 2;
+        //batch.getTransformMatrix().setToRotation(0, 0, 1, body.getAngle() * MathUtils.radiansToDegrees);
+        batch.draw(ship, p.x - width / 2, p.y - height / 2, width, height);
+        batch.end();
     }
 
     private static void applyAxisThrustToBody(Body body, float thrustPercent, long miliseconds, Fixture fixture) {
@@ -183,7 +202,7 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
         e.setPosition(fixturePosition.x, fixturePosition.y);
         
         //Point along -y (down)
-        float bodyAngle = body.getAngle() + 270;
+        float bodyAngle = body.getAngle() * MathUtils.radiansToDegrees + 270;
         float jetSpread = JET_SPREAD_ANGLE_DEG;
         
         ScaledNumericValue jetAngle = e.getAngle();
@@ -192,7 +211,6 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
         ScaledNumericValue jetRate = e.getEmission();
         //We smooth the scale a bit so it doesn't drop off as fast
         float jetEmissionRate = JET_EMISSION_RATE * (float)Math.sqrt(scale);
-        Gdx.app.log("Emission Rate", "R:" + jetEmissionRate);
         jetRate.setHigh(jetEmissionRate, jetEmissionRate);
         jetRate.setLow(jetEmissionRate, jetEmissionRate);
         

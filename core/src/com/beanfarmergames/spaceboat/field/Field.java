@@ -114,6 +114,10 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext> {
         boats.add(b);
     }
 
+    public void removeBoat(Boat b) {
+        boats.remove(b);
+    }
+
     public List<Boat> getBoats() {
         return boats;
     }
@@ -124,5 +128,13 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext> {
 
     public void registerRenderCallback(RenderCallback<RenderContext> renderCallback) {
         renderCallbacks.add(renderCallback);
+    }
+
+    public void unregisterUpdateCallback(UpdateCallback updateCallback) {
+        updateCallbacks.remove(updateCallback);
+    }
+
+    public void unregisterRenderCallback(RenderCallback<RenderContext> renderCallback) {
+        renderCallbacks.remove(renderCallback);
     }
 }
