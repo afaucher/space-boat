@@ -4,6 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.maps.MapLayer;
+import com.badlogic.gdx.maps.MapObject;
+import com.badlogic.gdx.maps.objects.CircleMapObject;
+import com.badlogic.gdx.maps.objects.EllipseMapObject;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TiledMapRenderer;
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -11,23 +22,43 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.EdgeShape;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.utils.Disposable;
 import com.beanfarmergames.common.callbacks.RenderCallback;
 import com.beanfarmergames.common.callbacks.UpdateCallback;
+import com.beanfarmergames.common.callbacks.impl.ListCallbackHandler;
 import com.beanfarmergames.spaceboat.RenderContext;
+import com.beanfarmergames.spaceboat.RenderLayer;
 import com.beanfarmergames.spaceboat.boat.Boat;
+import com.beanfarmergames.spaceboat.entities.Cow;
+import com.siondream.core.physics.MapBodyManager;
 
-public class Field implements UpdateCallback, RenderCallback<RenderContext> {
+public class Field implements UpdateCallback, RenderCallback<RenderContext>, Disposable {
 
-    private World world;
+    private World world = null;
     public static final float G = -0.001f;
-    //private static final float WORLD_STEPS_MILISECOND = 0.1f;
+    // private static final float WORLD_STEPS_MILISECOND = 0.1f;
 
-    private List<UpdateCallback> updateCallbacks = new ArrayList<UpdateCallback>();
-    private List<RenderCallback<RenderContext>> renderCallbacks = new ArrayList<RenderCallback<RenderContext>>();
+    private ListCallbackHandler<UpdateCallback> updateCallbacks = new ListCallbackHandler<UpdateCallback>();
+    private ListCallbackHandler<RenderCallback<RenderContext>> renderCallbacks = new ListCallbackHandler<RenderCallback<RenderContext>>();
+    private ListCallbackHandler<Disposable> disposeCallbacks = new ListCallbackHandler<Disposable>();
 
     private List<Boat> boats = new ArrayList<Boat>();
 
     private Rectangle extents;
+
+    private OrthographicCamera camera = null;
+    private TiledMap map = null;
+    private TiledMapRenderer mapRenderer = null;
+
+    private final AssetManager assetManager;
+
+    public Field(AssetManager assetManager) {
+        this.assetManager = assetManager;
+
+        assetManager.setLoader(TiledMap.class, new TmxMapLoader(new InternalFileHandleResolver()));
+        assetManager.load("map/test.tmx", TiledMap.class);
+        assetManager.finishLoading();
+    }
 
     public Rectangle getFieldExtents() {
         return extents;
@@ -36,6 +67,10 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext> {
     public void resetLevel() {
         Vector2 gravity = new Vector2(0.0f, G);
         boolean doSleep = false;
+        if (world != null) {
+            world.dispose();
+            world = null;
+        }
         world = new World(gravity, doSleep);
         updateCallbacks.clear();
         renderCallbacks.clear();
@@ -46,6 +81,40 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext> {
         extents = new Rectangle(0, 0, x, y);
 
         createWall(world, extents);
+        loadTiles();
+        
+        camera = new OrthographicCamera();
+        camera.setToOrtho(false, x,y);
+    }
+
+    private void loadTiles() {
+        if (map != null) {
+            map.dispose();
+            map = null;
+        }
+        map = assetManager.get("map/test.tmx");
+        mapRenderer = new OrthogonalTiledMapRenderer(map, 1f);
+
+        MapBodyManager mbm = new MapBodyManager(getWorld(), 1, null, 1);
+        mbm.createPhysics(map);
+        
+        MapLayer gameObjectsLayer = map.getLayers().get("gameobjects");
+        for (MapObject mapObject : gameObjectsLayer.getObjects()) {
+            if ("cow".equals(mapObject.getProperties().get("type"))) {
+                //mapObject.getProperties().g
+                //TODO: Get x,y
+                if (mapObject instanceof CircleMapObject) {
+                    CircleMapObject circleMapObject = (CircleMapObject)mapObject;
+                    Vector2 position = new Vector2(circleMapObject.getCircle().x, circleMapObject.getCircle().y);
+                    Cow cow = new Cow(this, position);
+                } else if (mapObject instanceof EllipseMapObject) {
+                    EllipseMapObject elipseMapObject = (EllipseMapObject)mapObject;
+                    Vector2 position = new Vector2(elipseMapObject.getEllipse().x, elipseMapObject.getEllipse().y);
+                    Cow cow = new Cow(this, position);
+                }
+            }
+                
+        }
     }
 
     private static FixtureDef wallFixture(float x1, float y1, float x2, float y2) {
@@ -61,7 +130,7 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext> {
         return fdef;
     }
 
-    public static void createWall(World world, Rectangle box) {
+    private static void createWall(World world, Rectangle box) {
 
         BodyDef bd = new BodyDef();
         bd.allowSleep = false;
@@ -84,8 +153,14 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext> {
 
     @Override
     public void render(RenderContext renderContext) {
+        
+        if (RenderLayer.BACKGROUND.equals(renderContext.getRenderLayer())) {
+            camera.update();
+            mapRenderer.setView(camera);
+            mapRenderer.render();
+        }
 
-        for (RenderCallback<RenderContext> callback : renderCallbacks) {
+        for (RenderCallback<RenderContext> callback : renderCallbacks.getCallbacks()) {
             callback.render(renderContext);
         }
     }
@@ -101,7 +176,7 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext> {
             world.step(worldStepSeconds, 10, 10);
         }
 
-        for (UpdateCallback callback : updateCallbacks) {
+        for (UpdateCallback callback : updateCallbacks.getCallbacks()) {
             callback.updateCallback(miliseconds);
         }
     }
@@ -122,19 +197,28 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext> {
         return boats;
     }
 
-    public void registerUpdateCallback(UpdateCallback updateCallback) {
-        updateCallbacks.add(updateCallback);
+    public ListCallbackHandler<UpdateCallback> getUpdateCallbacks() {
+        return updateCallbacks;
+    }
+    
+    public ListCallbackHandler<RenderCallback<RenderContext>> getRenderCallbacks() {
+        return renderCallbacks;
     }
 
-    public void registerRenderCallback(RenderCallback<RenderContext> renderCallback) {
-        renderCallbacks.add(renderCallback);
+    public ListCallbackHandler<Disposable> getDisposeCallbacks() {
+        return disposeCallbacks;
     }
 
-    public void unregisterUpdateCallback(UpdateCallback updateCallback) {
-        updateCallbacks.remove(updateCallback);
-    }
-
-    public void unregisterRenderCallback(RenderCallback<RenderContext> renderCallback) {
-        renderCallbacks.remove(renderCallback);
+    @Override
+    public void dispose() {
+        for (Disposable d : disposeCallbacks.getCallbacks()) {
+            d.dispose();
+        }
+        disposeCallbacks.clear();
+        
+        if (world != null) {
+            world.dispose();
+            world = null;
+        }
     }
 }

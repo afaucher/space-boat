@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="10" height="10" tilewidth="70" tileheight="70" nextobjectid="31">
+ <tileset firstgid="1" name="tiles_spritesheet" tilewidth="70" tileheight="70" spacing="1">
+  <image source="tiles_spritesheet.png" width="852" height="856"/>
+  <tile id="50">
+   <properties>
+    <property name="TestProp" value="foo"/>
+   </properties>
+  </tile>
+ </tileset>
+ <layer name="Tile Layer 1" width="10" height="10">
+  <data encoding="base64" compression="zlib">
+   eJwzYCAMbIhQMxiBCBCbIWE9KprtQ4SaMCCuAuJqIHYnQr01EAMAne8Dag==
+  </data>
+ </layer>
+ <objectgroup name="physics" visible="0">
+  <object id="17" x="350" y="350" width="70" height="70"/>
+  <object id="18" x="630" y="350" width="70" height="70"/>
+  <object id="19" x="490" y="560" width="210" height="70"/>
+  <object id="20" x="560" y="490" width="70" height="70"/>
+  <object id="21" x="630" y="630" width="70" height="70"/>
+  <object id="22" x="630" y="0" width="70" height="70"/>
+  <object id="23" x="0" y="0" width="70" height="70"/>
+  <object id="24" x="0" y="630" width="70" height="70"/>
+  <object id="25" x="420" y="402.5" width="210" height="17.5"/>
+ </objectgroup>
+ <objectgroup name="gameobjects">
+  <object id="26" type="cow" x="192.5" y="87.5">
+   <ellipse/>
+  </object>
+  <object id="29" type="cow" x="367.5" y="105">
+   <ellipse/>
+  </object>
+  <object id="30" type="cow" x="490" y="227.5">
+   <ellipse/>
+  </object>
+ </objectgroup>
+</map>

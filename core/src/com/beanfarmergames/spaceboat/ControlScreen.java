@@ -46,18 +46,12 @@ public class ControlScreen implements Screen {
         Kryo kryo = client.getKryo();
         kryo.register(Vector2.class);
         kryo.register(PlayerData.class);
-        //client.start();
+        client.start();
         playerData.setName("Ducky");
     }
 
     @Override
     public void render(float delta) {
-        
-        try {
-            client.update(0);
-        } catch (IOException e) {
-            Gdx.app.log("Client", e.getMessage());
-        }
         
         //Try and discover or publish periodically
         //TODO: This code is garbage, don't look.
@@ -92,6 +86,13 @@ public class ControlScreen implements Screen {
                 lastTickTimeSeconds = tickTimeSeconds;
             }
         }
+        
+        //TODO: Throws cannot connect on update thread
+        /*try {
+            client.update(0);
+        } catch (IOException e) {
+            Gdx.app.log("Client", e.getMessage());
+        }*/
         
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);

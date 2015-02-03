@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -18,15 +19,17 @@ import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.Transform;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.utils.Disposable;
 import com.beanfarmergames.common.callbacks.RenderCallback;
 import com.beanfarmergames.common.callbacks.UpdateCallback;
 import com.beanfarmergames.common.controls.AxisControl;
 import com.beanfarmergames.common.physics.PhysicsUtil;
 import com.beanfarmergames.spaceboat.RenderContext;
 import com.beanfarmergames.spaceboat.RenderLayer;
+import com.beanfarmergames.spaceboat.debug.DebugSettings;
 import com.beanfarmergames.spaceboat.field.Field;
 
-public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
+public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disposable {
 
     private static final float JET_EMISSION_RATE = 100.0f;
     private static final int JET_SPREAD_ANGLE_DEG = 10;
@@ -39,7 +42,7 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
     private final Field field;
     private final BoatControl controls = new BoatControl();
     private final Fixture left, right;
-    private SpriteBatch batch = null;
+    private final SpriteBatch batch;
 
     private ParticleEffect[] jetEffect = new ParticleEffect[2];
     private Texture ship = new Texture("art/ship.png");
@@ -83,8 +86,9 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
         right = attachShape(body, new Vector2(PART_DISTANCE / 2, 0), PART_RAIDIUS, this);
 
         // Insert into field
-        field.registerUpdateCallback(this);
-        field.registerRenderCallback(this);
+        field.getRenderCallbacks().registerCallback(this);
+        field.getUpdateCallbacks().registerCallback(this);
+        field.getDisposeCallbacks().registerCallback(this);
         field.spawnBoat(this);
 
         // Setup particles
@@ -96,14 +100,15 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
         }
     }
     
-    public void destroy() {
+    public void dispose() {
         if (body != null) {
             World world = field.getWorld();
             world.destroyBody(body);
             //body = null;
         }
-        field.unregisterUpdateCallback(this);
-        field.unregisterRenderCallback(this);
+        field.getRenderCallbacks().removeCallback(this);
+        field.getUpdateCallbacks().removeCallback(this);
+        field.getDisposeCallbacks().removeCallback(this);
     }
 
     public void spawn(Vector2 spwan) {
@@ -131,28 +136,37 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext> {
         }
         batch.end();
 
-        r.begin(ShapeType.Filled);
-        r.setColor(1, 0, 0, 1);
-        r.circle(leftFixturePosition.x, leftFixturePosition.y, PART_RAIDIUS);
-        r.circle(rightFixturePosition.x, rightFixturePosition.y, PART_RAIDIUS);
-
-        r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x + 40, leftFixturePosition.y);
-        r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x, leftFixturePosition.y + 40);
-        r.setColor(0, 1, 0, 1);
-
-        float forwardRad = body.getAngle() + (float) Math.PI / 2.0f;
-        float proboscusLength = 100;
-        Vector2 p = body.getPosition();
-        r.rectLine(p.x, p.y, p.x + proboscusLength * (float) Math.cos(forwardRad),
-                p.y + proboscusLength * (float) Math.sin(forwardRad), 5);
-        r.end();
+        if (DebugSettings.DEBUG_DRAW) {
+            r.begin(ShapeType.Filled);
+            r.setColor(1, 0, 0, 1);
+            r.circle(leftFixturePosition.x, leftFixturePosition.y, PART_RAIDIUS);
+            r.circle(rightFixturePosition.x, rightFixturePosition.y, PART_RAIDIUS);
+    
+            r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x + 40, leftFixturePosition.y);
+            r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x, leftFixturePosition.y + 40);
+            r.setColor(0, 1, 0, 1);
+    
+            float forwardRad = body.getAngle() + (float) Math.PI / 2.0f;
+            float proboscusLength = 100;
+            Vector2 p = body.getPosition();
+            r.rectLine(p.x, p.y, p.x + proboscusLength * (float) Math.cos(forwardRad),
+                    p.y + proboscusLength * (float) Math.sin(forwardRad), 5);
+            r.end();
+        }
         
         batch.begin();
         float width = PART_RAIDIUS * 2 + PART_DISTANCE;
         float height = PART_RAIDIUS * 2;
-        //batch.getTransformMatrix().setToRotation(0, 0, 1, body.getAngle() * MathUtils.radiansToDegrees);
-        batch.draw(ship, p.x - width / 2, p.y - height / 2, width, height);
+        Vector2 pos = body.getTransform().getPosition();
+        
+        //TODO: There has to be an easier way to do this
+        Matrix4 m1 = new Matrix4().trn(pos.x, pos.y, 0);
+        Matrix4 m2 = new Matrix4().rotateRad(0, 0, 1, body.getAngle());
+        
+        batch.setTransformMatrix(m1.mul(m2));
+        batch.draw(ship, - width / 2, - height / 2, width, height);
         batch.end();
+        batch.setTransformMatrix(new Matrix4());
     }
 
     private static void applyAxisThrustToBody(Body body, float thrustPercent, long miliseconds, Fixture fixture) {

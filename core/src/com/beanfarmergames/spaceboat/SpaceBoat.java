@@ -10,6 +10,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -17,6 +19,12 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.BitmapFont.TextBounds;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TiledMapRenderer;
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.badlogic.gdx.maps.tiled.renderers.IsometricTiledMapRenderer;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.TimeUtils;
@@ -25,9 +33,10 @@ import com.beanfarmergames.common.callbacks.UpdateCallback;
 import com.beanfarmergames.common.callbacks.impl.ListCallbackHandler;
 import com.beanfarmergames.spaceboat.boat.Boat;
 import com.beanfarmergames.spaceboat.field.Field;
+import com.siondream.core.physics.MapBodyManager;
 
 public class SpaceBoat implements Screen, InputProcessor {
-    private OrthographicCamera camera = null;
+    
     private SpriteBatch batch = null;
     private Texture[] img = new Texture[3];
     private Vector2 clouds[];
@@ -40,6 +49,8 @@ public class SpaceBoat implements Screen, InputProcessor {
 
     private Vector2 spawn = null;
     private Random rand = new Random();
+    
+    private AssetManager assetManager;
 
     private ListCallbackHandler<UpdateCallback> updateCallbacks = new ListCallbackHandler<UpdateCallback>();
 
@@ -54,10 +65,10 @@ public class SpaceBoat implements Screen, InputProcessor {
     private static final float CLOUD_OFFSCREEN_DIST = 200;
 
     public SpaceBoat() {
-        camera = new OrthographicCamera();
+        assetManager = new AssetManager();
+        
         int x = Gdx.app.getGraphics().getWidth();
         int y = Gdx.app.getGraphics().getHeight();
-        camera.setToOrtho(false, x, y);
 
         renderer = new ShapeRenderer(500);
 
@@ -66,11 +77,10 @@ public class SpaceBoat implements Screen, InputProcessor {
         batch = new SpriteBatch();
         buildClouds(x, y);
 
-        field = new Field();
+        field = new Field(assetManager);
         field.resetLevel();
 
         spawn = new Vector2(x / 2, y / 2);
-
     }
 
     /**
@@ -93,7 +103,7 @@ public class SpaceBoat implements Screen, InputProcessor {
         players.remove(player);
         Boat boat = player.getBoat();
         if (boat != null) {
-            boat.destroy();
+            boat.dispose();
             player.setBoat(null);
         }
     }
@@ -248,26 +258,20 @@ public class SpaceBoat implements Screen, InputProcessor {
 
     @Override
     public void resize(int width, int height) {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
     public void pause() {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
     public void resume() {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
     public void dispose() {
-        // TODO Auto-generated method stub
-
+        assetManager.dispose();
+        field.dispose();
         font.dispose();
         batch.dispose();
         for (Texture i : img) {
@@ -278,13 +282,9 @@ public class SpaceBoat implements Screen, InputProcessor {
 
     @Override
     public void show() {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
     public void hide() {
-        // TODO Auto-generated method stub
-
     }
 }

@@ -13,6 +13,10 @@ public class ListCallbackHandler<T> implements CallbackHandler<T> {
     public Collection<T> getCallbacks() {
         return callbacks;
     }
+    
+    public void clear() {
+        callbacks.clear();
+    }
 
     @Override
     public void registerCallback(T callback) {
