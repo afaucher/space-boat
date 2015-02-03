@@ -128,64 +128,69 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
 
     @Override
     public void render(RenderContext renderContext) {
-        if (!RenderLayer.PLAYER_BODY.equals(renderContext.getRenderLayer())) {
-            return;
-        }
+        if (RenderLayer.PLAYER_BODY.equals(renderContext.getRenderLayer())) {
 
-        ShapeRenderer r = renderContext.getShapeRenderer();
-        Vector2 leftFixturePosition = PhysicsUtil.getWorldFixturePosition(left);
-        Vector2 rightFixturePosition = PhysicsUtil.getWorldFixturePosition(right);
-
-        batch.begin();
-        for (int i = 0; i < jetEffect.length; i++) {
-            jetEffect[i].draw(batch);
-        }
-        batch.end();
-
-        if (DebugSettings.DEBUG_DRAW) {
-            r.begin(ShapeType.Filled);
-            r.setColor(1, 0, 0, 1);
-            r.circle(leftFixturePosition.x, leftFixturePosition.y, PART_RAIDIUS);
-            r.circle(rightFixturePosition.x, rightFixturePosition.y, PART_RAIDIUS);
+            ShapeRenderer r = renderContext.getShapeRenderer();
+            Vector2 leftFixturePosition = PhysicsUtil.getWorldFixturePosition(left);
+            Vector2 rightFixturePosition = PhysicsUtil.getWorldFixturePosition(right);
     
-            r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x + 40, leftFixturePosition.y);
-            r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x, leftFixturePosition.y + 40);
-            r.setColor(0, 1, 0, 1);
-    
-            float forwardRad = body.getAngle() + (float) Math.PI / 2.0f;
-            float proboscusLength = 100;
-            Vector2 p = body.getPosition();
-            r.rectLine(p.x, p.y, p.x + proboscusLength * (float) Math.cos(forwardRad),
-                    p.y + proboscusLength * (float) Math.sin(forwardRad), 5);
-            r.end();
+            if (DebugSettings.DEBUG_DRAW) {
+                r.begin(ShapeType.Filled);
+                r.setColor(1, 0, 0, 1);
+                r.circle(leftFixturePosition.x, leftFixturePosition.y, PART_RAIDIUS);
+                r.circle(rightFixturePosition.x, rightFixturePosition.y, PART_RAIDIUS);
+        
+                r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x + 40, leftFixturePosition.y);
+                r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x, leftFixturePosition.y + 40);
+                r.setColor(0, 1, 0, 1);
+        
+                float forwardRad = body.getAngle() + (float) Math.PI / 2.0f;
+                float proboscusLength = 100;
+                Vector2 p = body.getPosition();
+                r.rectLine(p.x, p.y, p.x + proboscusLength * (float) Math.cos(forwardRad),
+                        p.y + proboscusLength * (float) Math.sin(forwardRad), 5);
+                r.end();
+            }
+            
+
+            // Ship Sprite
+            batch.begin();
+            float width = PART_RAIDIUS * 2 + PART_DISTANCE;
+            float height = PART_RAIDIUS * 2;
+            Vector2 pos = body.getTransform().getPosition();
+            
+            //TODO: There has to be an easier way to do this
+            Matrix4 m1 = new Matrix4().trn(pos.x, pos.y, 0);
+            Matrix4 m2 = new Matrix4().rotateRad(0, 0, 1, body.getAngle());
+            
+            batch.setTransformMatrix(m1.mul(m2));
+            batch.draw(ship, - width / 2, - height / 2, width, height);
+            batch.end();
+            batch.setTransformMatrix(new Matrix4());
+        
+        } else if (RenderLayer.EFFECTS.equals(renderContext.getRenderLayer())) {
+
+            batch.begin();
+            for (int i = 0; i < jetEffect.length; i++) {
+                jetEffect[i].draw(batch);
+            }
+            batch.end();
+            
+            {
+                //Tractor
+                /*r.begin(ShapeType.Line);
+                r.setColor(1, 1, 1, 0.25f);
+                float baseAngleRad = body.getAngle() + (float)Math.PI * 3.0f / 2.0f;
+                Vector2 src = body.getPosition().cpy();
+                Vector2 dest1 = src.cpy().add((float)Math.cos(baseAngleRad - TRACTOR_HALF_ARC) * TRACTOR_SCALE, (float)Math.sin(baseAngleRad - TRACTOR_HALF_ARC) * TRACTOR_SCALE);
+                Vector2 dest2 = src.cpy().add((float)Math.cos(baseAngleRad + TRACTOR_HALF_ARC) * TRACTOR_SCALE, (float)Math.sin(baseAngleRad + TRACTOR_HALF_ARC) * TRACTOR_SCALE);
+                Color clear = new Color(1,1,1,0);
+                r.triangle(src.x, src.y, dest1.x, dest1.y, dest2.x, dest2.y, Color.WHITE, clear, clear);
+                r.end();*/
+            }
         }
         
-        {
-            //Tractor
-            r.begin(ShapeType.Filled);
-            r.setColor(1, 1, 1, 0.25f);
-            float baseAngleRad = body.getAngle() + (float)Math.PI * 3.0f / 2.0f;
-            Vector2 src = body.getPosition().cpy();
-            Vector2 dest1 = src.cpy().add((float)Math.cos(baseAngleRad - TRACTOR_HALF_ARC) * TRACTOR_SCALE, (float)Math.sin(baseAngleRad - TRACTOR_HALF_ARC) * TRACTOR_SCALE);
-            Vector2 dest2 = src.cpy().add((float)Math.cos(baseAngleRad + TRACTOR_HALF_ARC) * TRACTOR_SCALE, (float)Math.sin(baseAngleRad + TRACTOR_HALF_ARC) * TRACTOR_SCALE);
-            Color clear = new Color(1,1,1,0);
-            r.triangle(src.x, src.y, dest1.x, dest1.y, dest2.x, dest2.y, Color.WHITE, clear, clear);
-            r.end();
-        }
         
-        batch.begin();
-        float width = PART_RAIDIUS * 2 + PART_DISTANCE;
-        float height = PART_RAIDIUS * 2;
-        Vector2 pos = body.getTransform().getPosition();
-        
-        //TODO: There has to be an easier way to do this
-        Matrix4 m1 = new Matrix4().trn(pos.x, pos.y, 0);
-        Matrix4 m2 = new Matrix4().rotateRad(0, 0, 1, body.getAngle());
-        
-        batch.setTransformMatrix(m1.mul(m2));
-        batch.draw(ship, - width / 2, - height / 2, width, height);
-        batch.end();
-        batch.setTransformMatrix(new Matrix4());
     }
 
     private static void applyAxisThrustToBody(Body body, float thrustPercent, long miliseconds, Fixture fixture) {
