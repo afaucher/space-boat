@@ -2,7 +2,6 @@ package com.beanfarmergames.spaceboat.entities;
 
 import java.util.Random;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Matrix4;
@@ -21,7 +20,7 @@ import com.beanfarmergames.spaceboat.RenderContext;
 import com.beanfarmergames.spaceboat.RenderLayer;
 import com.beanfarmergames.spaceboat.field.Field;
 
-public class Cow implements UpdateCallback, RenderCallback<RenderContext>, Disposable {
+public class Cow implements UpdateCallback, RenderCallback<RenderContext>, Disposable, CollisionData {
     private final Body body;
     private SpriteBatch batch = null;
     private final Field field;
@@ -122,6 +121,11 @@ public class Cow implements UpdateCallback, RenderCallback<RenderContext>, Dispo
         // TODO Auto-generated method stub
         float cloudTime = TimeUtils.nanoTime() / 1000000000.0f;
         body.applyTorque((float)Math.sin(cloudTime + offset) * MAX_COW_TORQUE, true);
+    }
+
+    @Override
+    public boolean canTractor() {
+        return true;
     }
 
 }

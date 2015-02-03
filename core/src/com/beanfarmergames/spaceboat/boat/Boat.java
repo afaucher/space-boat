@@ -1,6 +1,7 @@
 package com.beanfarmergames.spaceboat.boat;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.ParticleEffectPool;
@@ -27,9 +28,10 @@ import com.beanfarmergames.common.physics.PhysicsUtil;
 import com.beanfarmergames.spaceboat.RenderContext;
 import com.beanfarmergames.spaceboat.RenderLayer;
 import com.beanfarmergames.spaceboat.debug.DebugSettings;
+import com.beanfarmergames.spaceboat.entities.CollisionData;
 import com.beanfarmergames.spaceboat.field.Field;
 
-public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disposable {
+public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disposable, CollisionData {
 
     private static final float JET_EMISSION_RATE = 100.0f;
     private static final int JET_SPREAD_ANGLE_DEG = 10;
@@ -37,6 +39,9 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
     private static final float MAX_THRUST_N = 10.0f;
     private static final float PART_RAIDIUS = 15;
     private static final float PART_DISTANCE = 30.0f;
+    private static final float TRACTOR_SCALE = 100;
+    private static final float TRACTOR_HALF_ARC = 0.2f;
+    private static final float TRACATOR_HALF_ARC_SEGMENTS = 10;
 
     private final Body body;
     private final Field field;
@@ -46,6 +51,7 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
 
     private ParticleEffect[] jetEffect = new ParticleEffect[2];
     private Texture ship = new Texture("art/ship.png");
+    private EmissionSource source = new EmissionSource();
 
     private static Fixture attachShape(Body body, Vector2 offset, float radius, Object userData) {
         Fixture fixture = null;
@@ -154,6 +160,19 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
             r.end();
         }
         
+        {
+            //Tractor
+            r.begin(ShapeType.Filled);
+            r.setColor(1, 1, 1, 0.25f);
+            float baseAngleRad = body.getAngle() + (float)Math.PI * 3.0f / 2.0f;
+            Vector2 src = body.getPosition().cpy();
+            Vector2 dest1 = src.cpy().add((float)Math.cos(baseAngleRad - TRACTOR_HALF_ARC) * TRACTOR_SCALE, (float)Math.sin(baseAngleRad - TRACTOR_HALF_ARC) * TRACTOR_SCALE);
+            Vector2 dest2 = src.cpy().add((float)Math.cos(baseAngleRad + TRACTOR_HALF_ARC) * TRACTOR_SCALE, (float)Math.sin(baseAngleRad + TRACTOR_HALF_ARC) * TRACTOR_SCALE);
+            Color clear = new Color(1,1,1,0);
+            r.triangle(src.x, src.y, dest1.x, dest1.y, dest2.x, dest2.y, Color.WHITE, clear, clear);
+            r.end();
+        }
+        
         batch.begin();
         float width = PART_RAIDIUS * 2 + PART_DISTANCE;
         float height = PART_RAIDIUS * 2;
@@ -207,6 +226,14 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
         float deltaSeconds = miliseconds / 1000.0f;
         updateJetEffect(jetEffect[0], left, l, deltaSeconds);
         updateJetEffect(jetEffect[1], right, r, deltaSeconds);
+        
+        // Tractor
+        float baseAngleRad = body.getAngle() + (float)Math.PI * 3.0f / 2.0f;
+        for (float d = -TRACTOR_HALF_ARC; d <= TRACTOR_HALF_ARC; d += TRACTOR_HALF_ARC / TRACATOR_HALF_ARC_SEGMENTS) {
+            Vector2 src = body.getPosition().cpy();
+            Vector2 dest = src.cpy().add((float)Math.cos(baseAngleRad + d) * TRACTOR_SCALE, (float)Math.sin(baseAngleRad + d) * TRACTOR_SCALE);
+            source.emit(field.getWorld(), body, src, dest);
+        }
     }
     
     private void updateJetEffect(ParticleEffect pe, Fixture fixture, float scale, float deltaSeconds) {
@@ -229,6 +256,11 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
         jetRate.setLow(jetEmissionRate, jetEmissionRate);
         
         pe.update(deltaSeconds);
+    }
+
+    @Override
+    public boolean canTractor() {
+        return false;
     }
 
 }
