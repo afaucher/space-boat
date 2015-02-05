@@ -55,6 +55,7 @@ public class MainMenu implements Screen {
             public void changed (ChangeEvent event, Actor actor) {
                 SpaceBoat sb = new SpaceBoat();
                 SpaceBoatServer sbs = new SpaceBoatServer(sb);
+                SpaceBoatKeyboard sbk = new SpaceBoatKeyboard(sb);
                 ((Game)Gdx.app.getApplicationListener()).setScreen(sb);
             }
         });

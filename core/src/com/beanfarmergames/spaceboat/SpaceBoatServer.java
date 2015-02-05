@@ -18,7 +18,7 @@ import com.esotericsoftware.kryonet.Server;
 
 public class SpaceBoatServer extends Listener implements UpdateCallback {
     
-    private SpaceBoat sb;
+    private final SpaceBoat sb;
     private Server server = new Server();
     private Map<Connection, Player> connectionToPlayer = new HashMap<Connection, Player>();
 
@@ -60,7 +60,7 @@ public class SpaceBoatServer extends Listener implements UpdateCallback {
                 player = new Player();
                 player.setName(pd.getName());
                 connectionToPlayer.put(connection, player);
-                //FIXME: This fails because this callback is not on the render thread
+                //FIXME: This fails because this callback is not on the render thread when using sync client
                 sb.addPlayer(player);
             } else {
                 player.setName(pd.getName());

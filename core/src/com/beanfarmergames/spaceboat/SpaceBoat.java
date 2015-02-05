@@ -35,7 +35,7 @@ import com.beanfarmergames.spaceboat.boat.Boat;
 import com.beanfarmergames.spaceboat.field.Field;
 import com.siondream.core.physics.MapBodyManager;
 
-public class SpaceBoat implements Screen, InputProcessor {
+public class SpaceBoat implements Screen {
     
     private SpriteBatch batch = null;
     private Texture[] img = new Texture[3];
@@ -72,8 +72,6 @@ public class SpaceBoat implements Screen, InputProcessor {
 
         renderer = new ShapeRenderer(500);
 
-        Gdx.input.setInputProcessor(this);
-
         batch = new SpriteBatch();
         buildClouds(x, y);
 
@@ -81,6 +79,10 @@ public class SpaceBoat implements Screen, InputProcessor {
         field.resetLevel();
 
         spawn = new Vector2(x / 2, y / 2);
+    }
+    
+    public void spawn(Boat boat) {
+        boat.spawn(spawn);
     }
 
     /**
@@ -189,71 +191,6 @@ public class SpaceBoat implements Screen, InputProcessor {
         }
 
         batch.end();
-    }
-
-    @Override
-    public boolean keyDown(int keycode) {
-        Boat firstBoat = field.getBoats().get(0);
-
-        switch (keycode) {
-        case Input.Keys.Q:
-            firstBoat.getBoatControl().getLeft().setX(1);
-            break;
-        case Input.Keys.W:
-            firstBoat.getBoatControl().getRight().setX(1);
-            break;
-        case Input.Keys.R:
-            firstBoat.spawn(spawn);
-            break;
-        }
-
-        return true;
-    }
-
-    @Override
-    public boolean keyUp(int keycode) {
-        Boat firstBoat = field.getBoats().get(0);
-
-        switch (keycode) {
-        case Input.Keys.Q:
-            firstBoat.getBoatControl().getLeft().setX(0);
-            break;
-        case Input.Keys.W:
-            firstBoat.getBoatControl().getRight().setX(0);
-            break;
-        }
-
-        return true;
-    }
-
-    @Override
-    public boolean keyTyped(char character) {
-        return false;
-    }
-
-    @Override
-    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        return false;
-    }
-
-    @Override
-    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        return false;
-    }
-
-    @Override
-    public boolean touchDragged(int screenX, int screenY, int pointer) {
-        return false;
-    }
-
-    @Override
-    public boolean mouseMoved(int screenX, int screenY) {
-        return false;
-    }
-
-    @Override
-    public boolean scrolled(int amount) {
-        return false;
     }
 
     @Override
