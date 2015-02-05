@@ -8,12 +8,15 @@ import java.util.Map;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.controllers.Controller;
+import com.badlogic.gdx.controllers.Controllers;
 import com.beanfarmergames.spaceboat.boat.Boat;
 import com.beanfarmergames.spaceboat.debug.DebugSettings;
 
 public class SpaceBoatKeyboard implements InputProcessor {
     
     private final SpaceBoat sb;
+    private static final float MAX_KEYBOARD_THRUST = 0.7f;
     
     private Map<Integer, Player> mappingToPlayer = new HashMap<Integer, Player>();
     
@@ -43,8 +46,12 @@ public class SpaceBoatKeyboard implements InputProcessor {
         
         Gdx.input.setInputProcessor(this);
         
-        bindings.add(new KeyBinding(Input.Keys.Q, Input.Keys.W, Input.Keys.R));
-        bindings.add(new KeyBinding(Input.Keys.I, Input.Keys.O, Input.Keys.P));
+        bindings.add(new KeyBinding(Input.Keys.W, Input.Keys.Q, Input.Keys.R));
+        bindings.add(new KeyBinding(Input.Keys.O, Input.Keys.I, Input.Keys.P));
+        
+        for(Controller controller: Controllers.getControllers()) {
+            Gdx.app.log("Controller", controller.getName());
+         }
     }
 
     @Override
@@ -91,9 +98,9 @@ public class SpaceBoatKeyboard implements InputProcessor {
             }
             
             if (binding.keycodeLeft == keycode) {
-                boat.getBoatControl().getLeft().setX(1);
+                boat.getBoatControl().getLeft().setX(MAX_KEYBOARD_THRUST);
             } else if (binding.keycodeRight == keycode) {
-                boat.getBoatControl().getRight().setX(1);
+                boat.getBoatControl().getRight().setX(MAX_KEYBOARD_THRUST);
             } else if (keycode == binding.keycodeStart) {
                 //This should actually 'ready' the player to be spawned
                 sb.spawn(boat);

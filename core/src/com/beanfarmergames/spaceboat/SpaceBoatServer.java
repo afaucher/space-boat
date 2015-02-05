@@ -40,6 +40,26 @@ public class SpaceBoatServer extends Listener implements UpdateCallback {
         sb.getUpdateCallbackHandler().registerCallback(this);
     }
     
+    public void steerBoatControl(Vector2 v, BoatControl bc) {
+        /**
+         * 0,1    1,1     1,0
+         * 
+         * 0,.5   .5,.5   .5,0
+         * 
+         * 0,0    0,0     0,0
+         */
+        float x = v.x;
+        float y = v.y;
+        float l = x < 0 ? 1+x : 1;
+        float r = x > 0 ? 1-x : 1;
+        float scale = Math.max(0, y);
+        l *= scale;
+        r *= scale;
+        
+        bc.getLeft().setX(l);
+        bc.getRight().setX(r);
+    }
+    
     public void received (Connection connection, Object object) {
         
         if (object instanceof Vector2) {
@@ -50,8 +70,8 @@ public class SpaceBoatServer extends Listener implements UpdateCallback {
             Boat b = player.getBoat();
             if (b == null) return;
             BoatControl bc = b.getBoatControl();
-            bc.getLeft().setX(v.x);
-            bc.getRight().setX(v.y);
+            
+            steerBoatControl(v,bc);
         } else if (object instanceof PlayerData) {
             //Bind the connection to a player once the player data is received.
             PlayerData pd = (PlayerData)object;
