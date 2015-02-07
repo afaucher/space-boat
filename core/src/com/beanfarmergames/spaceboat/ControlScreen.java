@@ -10,11 +10,13 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
+import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
 import com.badlogic.gdx.utils.TimeUtils;
+import com.beanfarmergames.spaceboat.net.ControlPad;
 import com.beanfarmergames.spaceboat.net.PlayerData;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
@@ -33,10 +35,11 @@ public class ControlScreen implements Screen {
     
     private Touchpad pad = new Touchpad(10, skin);
     private Label debugLabel = new Label("",skin);
-    private Button[] buttons = new Button[]{
-        new Button(skin),
-        new Button(skin),
-        new Button(skin),
+    private Button startButton = new Button(skin);
+    private CheckBox[] buttonsABC = new CheckBox[]{
+        new CheckBox("A", skin),
+        new CheckBox("B", skin),
+        new CheckBox("C", skin),
     };
     private PlayerData playerData = new PlayerData();
     
@@ -45,6 +48,7 @@ public class ControlScreen implements Screen {
         client = new Client();
         Kryo kryo = client.getKryo();
         kryo.register(Vector2.class);
+        kryo.register(ControlPad.class);
         kryo.register(PlayerData.class);
         client.start();
         playerData.setName("Ducky");
@@ -77,10 +81,17 @@ public class ControlScreen implements Screen {
             if (tickTimeSeconds - lastTickTimeSeconds > resendTickDeltaSeconds) {
                 float x = pad.getKnobPercentX();
                 float y = pad.getKnobPercentY();
+                boolean start = startButton.isPressed();
+                boolean a = buttonsABC[0].isChecked();
+                boolean b = buttonsABC[1].isChecked();
+                boolean c = buttonsABC[2].isChecked();
                 
-                client.sendTCP(new Vector2(x,y));
+                ControlPad cp = new ControlPad(new Vector2(x,y), start, a, b, c);
+                client.sendTCP(cp);
+                //client.sendTCP(new Vector2(x,y));
                 String labelText = "Connected: " + client.isConnected();
                 labelText += "\n Ping: " + client.getReturnTripTime();
+                labelText += "\n Sent: " + tickTimeSeconds;
                 debugLabel.setText(labelText);
                 
                 lastTickTimeSeconds = tickTimeSeconds;
@@ -117,10 +128,11 @@ public class ControlScreen implements Screen {
         int buttonSize = 30;
         
         table.add(pad).size(padSize,padSize);
-        table.add(buttons[0]).size(buttonSize);
-        table.add(buttons[1]).size(buttonSize);
-        table.add(buttons[2]).size(buttonSize).row();
-        table.add(debugLabel).size(padSize, padPadding).row();
+        table.add(buttonsABC[0]).size(buttonSize);
+        table.add(buttonsABC[1]).size(buttonSize);
+        table.add(buttonsABC[2]).size(buttonSize).row();
+        table.add(debugLabel).size(padSize, padPadding);
+        table.add(startButton).row();
 
         table.setFillParent(true);
         stage.addActor(table);

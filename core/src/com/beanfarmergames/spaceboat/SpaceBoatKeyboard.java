@@ -16,7 +16,7 @@ import com.beanfarmergames.spaceboat.debug.DebugSettings;
 public class SpaceBoatKeyboard implements InputProcessor {
     
     private final SpaceBoat sb;
-    private static final float MAX_KEYBOARD_THRUST = 0.7f;
+    private static final float MAX_KEYBOARD_THRUST = 0.6f;
     
     private Map<Integer, Player> mappingToPlayer = new HashMap<Integer, Player>();
     
@@ -24,18 +24,21 @@ public class SpaceBoatKeyboard implements InputProcessor {
         public final int keycodeLeft;
         public final int keycodeRight;
         public final int keycodeStart;
+        public final int keycodeTractor;
         
-        public KeyBinding(int keycodeLeft, int keycodeRight, int keycodeStart) {
+        public KeyBinding(int keycodeLeft, int keycodeRight, int keycodeStart, int keycodeTractor) {
             super();
             this.keycodeLeft = keycodeLeft;
             this.keycodeRight = keycodeRight;
             this.keycodeStart = keycodeStart;
+            this.keycodeTractor = keycodeTractor;
         }
         
         public boolean matches(int keycode) {
             return (keycode == keycodeLeft)
                     || (keycode == keycodeRight)
-                    || (keycode == keycodeStart);
+                    || (keycode == keycodeStart)
+                    || (keycode == keycodeTractor);
         }
     }
     
@@ -46,8 +49,8 @@ public class SpaceBoatKeyboard implements InputProcessor {
         
         Gdx.input.setInputProcessor(this);
         
-        bindings.add(new KeyBinding(Input.Keys.W, Input.Keys.Q, Input.Keys.R));
-        bindings.add(new KeyBinding(Input.Keys.O, Input.Keys.I, Input.Keys.P));
+        bindings.add(new KeyBinding(Input.Keys.W, Input.Keys.Q, Input.Keys.R, Input.Keys.T));
+        bindings.add(new KeyBinding(Input.Keys.O, Input.Keys.I, Input.Keys.P, Input.Keys.LEFT_BRACKET));
         
         for(Controller controller: Controllers.getControllers()) {
             Gdx.app.log("Controller", controller.getName());
@@ -65,7 +68,7 @@ public class SpaceBoatKeyboard implements InputProcessor {
         
         switch (keycode) {
         case Input.Keys.F1:
-            DebugSettings.DEBUG_DRAW = DebugSettings.DEBUG_DRAW;
+            DebugSettings.DEBUG_DRAW = !DebugSettings.DEBUG_DRAW;
             return true;
         }
         
@@ -104,6 +107,10 @@ public class SpaceBoatKeyboard implements InputProcessor {
             } else if (keycode == binding.keycodeStart) {
                 //This should actually 'ready' the player to be spawned
                 sb.spawn(boat);
+            } else if (keycode == binding.keycodeTractor) {
+                boat.getBoatControl().getTractor().toggle();
+            } else {
+                throw new RuntimeException("Not found");
             }
             
             break;

@@ -39,15 +39,25 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
     private static final float MAX_THRUST_N = 10.0f;
     private static final float PART_RAIDIUS = 15;
     private static final float PART_DISTANCE = 30.0f;
+
+    // TRACTOR
     private static final float TRACTOR_SCALE = 100;
     private static final float TRACTOR_HALF_ARC = 0.2f;
     private static final float TRACATOR_HALF_ARC_SEGMENTS = 10;
+    private static final float TRACTOR_FORCE = 0.25f;
+    private static final float MIN_DISTANCE = 20f;
+
+    // LASER
+    private static final float LASER_SCALE = 300;
+    private static final float LASER_WIDTH = 15f;
+    private static final int LASER_DRAW_ITERS = 3;
 
     private final Body body;
     private final Field field;
     private final BoatControl controls = new BoatControl();
     private final Fixture left, right;
     private final SpriteBatch batch;
+    private CollisionRecord lastLaserHit = null;
 
     private ParticleEffect[] jetEffect = new ParticleEffect[2];
     private Texture ship = new Texture("art/ship.png");
@@ -105,12 +115,12 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
             jetEffect[i].start();
         }
     }
-    
+
     public void dispose() {
         if (body != null) {
             World world = field.getWorld();
             world.destroyBody(body);
-            //body = null;
+            // body = null;
         }
         field.getRenderCallbacks().removeCallback(this);
         field.getUpdateCallbacks().removeCallback(this);
@@ -128,69 +138,110 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
 
     @Override
     public void render(RenderContext renderContext) {
+        ShapeRenderer r = renderContext.getShapeRenderer();
+
+        Transform bodyTransform = body.getTransform();
+
         if (RenderLayer.PLAYER_BODY.equals(renderContext.getRenderLayer())) {
 
-            ShapeRenderer r = renderContext.getShapeRenderer();
             Vector2 leftFixturePosition = PhysicsUtil.getWorldFixturePosition(left);
             Vector2 rightFixturePosition = PhysicsUtil.getWorldFixturePosition(right);
-    
+
             if (DebugSettings.DEBUG_DRAW) {
                 r.begin(ShapeType.Filled);
                 r.setColor(1, 0, 0, 1);
                 r.circle(leftFixturePosition.x, leftFixturePosition.y, PART_RAIDIUS);
                 r.circle(rightFixturePosition.x, rightFixturePosition.y, PART_RAIDIUS);
-        
+
                 r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x + 40, leftFixturePosition.y);
                 r.line(leftFixturePosition.x, leftFixturePosition.y, leftFixturePosition.x, leftFixturePosition.y + 40);
                 r.setColor(0, 1, 0, 1);
-        
+
                 float forwardRad = body.getAngle() + (float) Math.PI / 2.0f;
                 float proboscusLength = 100;
                 Vector2 p = body.getPosition();
-                r.rectLine(p.x, p.y, p.x + proboscusLength * (float) Math.cos(forwardRad),
-                        p.y + proboscusLength * (float) Math.sin(forwardRad), 5);
+                r.rectLine(p.x, p.y, p.x + proboscusLength * (float) Math.cos(forwardRad), p.y + proboscusLength
+                        * (float) Math.sin(forwardRad), 5);
                 r.end();
             }
-            
 
             // Ship Sprite
             batch.begin();
             float width = PART_RAIDIUS * 2 + PART_DISTANCE;
             float height = PART_RAIDIUS * 2;
-            Vector2 pos = body.getTransform().getPosition();
-            
-            //TODO: There has to be an easier way to do this
+            Vector2 pos = bodyTransform.getPosition();
+
+            // TODO: There has to be an easier way to do this
             Matrix4 m1 = new Matrix4().trn(pos.x, pos.y, 0);
             Matrix4 m2 = new Matrix4().rotateRad(0, 0, 1, body.getAngle());
-            
+
             batch.setTransformMatrix(m1.mul(m2));
-            batch.draw(ship, - width / 2, - height / 2, width, height);
+            batch.draw(ship, -width / 2, -height / 2, width, height);
             batch.end();
             batch.setTransformMatrix(new Matrix4());
-        
+
         } else if (RenderLayer.EFFECTS.equals(renderContext.getRenderLayer())) {
 
-            batch.begin();
-            for (int i = 0; i < jetEffect.length; i++) {
-                jetEffect[i].draw(batch);
-            }
-            batch.end();
-            
-            {
-                //Tractor
-                /*r.begin(ShapeType.Line);
-                r.setColor(1, 1, 1, 0.25f);
-                float baseAngleRad = body.getAngle() + (float)Math.PI * 3.0f / 2.0f;
-                Vector2 src = body.getPosition().cpy();
-                Vector2 dest1 = src.cpy().add((float)Math.cos(baseAngleRad - TRACTOR_HALF_ARC) * TRACTOR_SCALE, (float)Math.sin(baseAngleRad - TRACTOR_HALF_ARC) * TRACTOR_SCALE);
-                Vector2 dest2 = src.cpy().add((float)Math.cos(baseAngleRad + TRACTOR_HALF_ARC) * TRACTOR_SCALE, (float)Math.sin(baseAngleRad + TRACTOR_HALF_ARC) * TRACTOR_SCALE);
-                Color clear = new Color(1,1,1,0);
-                r.triangle(src.x, src.y, dest1.x, dest1.y, dest2.x, dest2.y, Color.WHITE, clear, clear);
-                r.end();*/
-            }
+            renderJet();
+
+            renderTractor(r);
+
+            renderLaser(r, bodyTransform);
         }
-        
-        
+
+    }
+
+    private void renderJet() {
+        batch.begin();
+        for (int i = 0; i < jetEffect.length; i++) {
+            jetEffect[i].draw(batch);
+        }
+        batch.end();
+    }
+
+    private void renderLaser(ShapeRenderer r, Transform bodyTransform) {
+        if (lastLaserHit == null) {
+            return;
+        }
+        r.begin(ShapeType.Filled);
+        Gdx.gl.glEnable(Gdx.gl20.GL_BLEND);
+        Gdx.gl.glBlendFunc(Gdx.gl30.GL_SRC_ALPHA, Gdx.gl30.GL_ONE_MINUS_SRC_ALPHA);
+        r.setColor(0, 1, 0, 0.1f);
+        float width = LASER_WIDTH;
+        for (int i = 0; i < LASER_DRAW_ITERS; i++) {
+            r.rectLine(bodyTransform.getPosition(), lastLaserHit.getPoint(), width);
+            width /= 2.0f;
+        }
+
+        r.end();
+    }
+
+    private void renderTractor(ShapeRenderer r) {
+        boolean tractorEnabled = controls.getTractor().isEnabled();
+        if (!tractorEnabled) {
+            return;
+        }
+
+        r.begin(ShapeType.Filled);
+        float baseAngleRad = body.getAngle() + (float) Math.PI * 3.0f / 2.0f;
+        Vector2 src = body.getPosition().cpy();
+        Vector2 dest1 = src.cpy().add((float) Math.cos(baseAngleRad - TRACTOR_HALF_ARC) * TRACTOR_SCALE,
+                (float) Math.sin(baseAngleRad - TRACTOR_HALF_ARC) * TRACTOR_SCALE);
+        Vector2 dest2 = src.cpy().add((float) Math.cos(baseAngleRad + TRACTOR_HALF_ARC) * TRACTOR_SCALE,
+                (float) Math.sin(baseAngleRad + TRACTOR_HALF_ARC) * TRACTOR_SCALE);
+        // Color.CLEAR is transparent black and looks funny on fade
+        Color clear = new Color(1, 1, 1, 0);
+        Gdx.gl.glEnable(Gdx.gl20.GL_BLEND);
+        Gdx.gl.glBlendFunc(Gdx.gl30.GL_SRC_ALPHA, Gdx.gl30.GL_ONE_MINUS_SRC_ALPHA);
+        r.triangle(src.x, src.y, dest1.x, dest1.y, dest2.x, dest2.y, Color.WHITE, clear, clear);
+        r.end();
+
+        if (DebugSettings.DEBUG_DRAW) {
+            r.begin(ShapeType.Line);
+            r.setColor(Color.RED);
+            r.triangle(src.x, src.y, dest1.x, dest1.y, dest2.x, dest2.y);
+            r.end();
+        }
     }
 
     private static void applyAxisThrustToBody(Body body, float thrustPercent, long miliseconds, Fixture fixture) {
@@ -216,7 +267,7 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
 
         AxisControl leftAxis = controls.getLeft();
         AxisControl rightAxis = controls.getRight();
-        //We blend the controls together to avoid spinning in place
+        // We blend the controls together to avoid spinning in place
         float l = leftAxis.getX();
         float r = rightAxis.getX();
         float blended = (r + l) / 2;
@@ -231,41 +282,92 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
         float deltaSeconds = miliseconds / 1000.0f;
         updateJetEffect(jetEffect[0], left, l, deltaSeconds);
         updateJetEffect(jetEffect[1], right, r, deltaSeconds);
-        
-        // Tractor
-        float baseAngleRad = body.getAngle() + (float)Math.PI * 3.0f / 2.0f;
+
+        updateTractor();
+
+        updateLaser();
+    }
+
+    private void updateLaser() {
+
+        boolean laserEnabled = controls.getLaser().isEnabled();
+        if (!laserEnabled) {
+            lastLaserHit = null;
+            return;
+        }
+
+        float baseAngleRad = body.getAngle() + (float) Math.PI * 3.0f / 2.0f;
+        Vector2 src = body.getPosition().cpy();
+        Vector2 dest = src.cpy().add((float) Math.cos(baseAngleRad) * LASER_SCALE,
+                (float) Math.sin(baseAngleRad) * LASER_SCALE);
+        source.emit(field.getWorld(), body, src, dest);
+
+        lastLaserHit = source.getLastHit();
+        if (lastLaserHit == null) {
+            // Fabricate a record based on our dest
+            lastLaserHit = new CollisionRecord(null, null, dest.cpy(), null, 1);
+            return;
+        }
+
+        // TODO: Cook!
+    }
+
+    private void updateTractor() {
+        boolean tractorEnabled = controls.getTractor().isEnabled();
+        if (!tractorEnabled) {
+            return;
+        }
+
+        // Point down
+        float baseAngleRad = body.getAngle() + (float) Math.PI * 3.0f / 2.0f;
         for (float d = -TRACTOR_HALF_ARC; d <= TRACTOR_HALF_ARC; d += TRACTOR_HALF_ARC / TRACATOR_HALF_ARC_SEGMENTS) {
             Vector2 src = body.getPosition().cpy();
-            Vector2 dest = src.cpy().add((float)Math.cos(baseAngleRad + d) * TRACTOR_SCALE, (float)Math.sin(baseAngleRad + d) * TRACTOR_SCALE);
+            Vector2 dest = src.cpy().add((float) Math.cos(baseAngleRad + d) * TRACTOR_SCALE,
+                    (float) Math.sin(baseAngleRad + d) * TRACTOR_SCALE);
             source.emit(field.getWorld(), body, src, dest);
+
+            CollisionRecord cr = source.getLastHit();
+            if (cr == null || cr.getCollisionData() == null) {
+                continue;
+            }
+
+            float dist = src.dst(cr.getPoint());
+            if (cr.getCollisionData().canTractor() && dist > MIN_DISTANCE) {
+                Body hitBody = cr.getFixture().getBody();
+
+                Vector2 force = cr.getNormal().cpy().scl(TRACTOR_FORCE);
+                Vector2 originForce = force.cpy().scl(-1);
+
+                hitBody.applyForceToCenter(force, true);
+            }
         }
     }
-    
+
     private void updateJetEffect(ParticleEffect pe, Fixture fixture, float scale, float deltaSeconds) {
         ParticleEmitter e = pe.getEmitters().first();
-        
+
         Vector2 fixturePosition = PhysicsUtil.getWorldFixturePosition(fixture);
         e.setPosition(fixturePosition.x, fixturePosition.y);
-        
-        //Point along -y (down)
+
+        // Point along -y (down)
         float bodyAngle = body.getAngle() * MathUtils.radiansToDegrees + 270;
         float jetSpread = JET_SPREAD_ANGLE_DEG;
-        
+
         ScaledNumericValue jetAngle = e.getAngle();
         jetAngle.setHigh(bodyAngle - jetSpread, bodyAngle + jetSpread);
         jetAngle.setLow(bodyAngle);
         ScaledNumericValue jetRate = e.getEmission();
-        //We smooth the scale a bit so it doesn't drop off as fast
-        float jetEmissionRate = JET_EMISSION_RATE * (float)Math.sqrt(scale);
+        // We smooth the scale a bit so it doesn't drop off as fast
+        float jetEmissionRate = JET_EMISSION_RATE * (float) Math.sqrt(scale);
         jetRate.setHigh(jetEmissionRate, jetEmissionRate);
         jetRate.setLow(jetEmissionRate, jetEmissionRate);
-        
+
         pe.update(deltaSeconds);
     }
 
     @Override
     public boolean canTractor() {
-        return false;
+        return true;
     }
 
 }

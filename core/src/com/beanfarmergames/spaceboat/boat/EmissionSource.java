@@ -11,8 +11,8 @@ public class EmissionSource implements RayCastCallback {
 
     private Vector2 source = null;
     private Body origin = null;
-    private static final float TRACTOR_FORCE = 0.25f;
-    private static final float MIN_DISTANCE = 20f;
+    
+    private CollisionRecord lastHit;
 
     public EmissionSource() {
     }
@@ -20,6 +20,8 @@ public class EmissionSource implements RayCastCallback {
     public void emit(World world, Body origin, Vector2 source, Vector2 dest) {
         this.source = source;
         this.origin = origin;
+        
+        lastHit = null;
 
         world.rayCast(this, source, dest);
     }
@@ -34,22 +36,15 @@ public class EmissionSource implements RayCastCallback {
             hit = (CollisionData) fixture.getBody().getUserData();
         }
         
-        if (hit != null) {
-            
-            float dist = source.dst(point);
-            if (hit.canTractor() && dist > MIN_DISTANCE) {
-                Body body = fixture.getBody();
-                
-                Vector2 force = normal.cpy().scl(TRACTOR_FORCE);
-                Vector2 originForce = force.cpy().scl(-1);
-                
-                body.applyForceToCenter(force, true);
-                
-                //origin.applyForceToCenter(originForce, true);
-            }
-        }
+        lastHit = new CollisionRecord(hit, fixture, point, normal, fraction);
 
-        return 1;
+        return 0;
     }
+
+    public CollisionRecord getLastHit() {
+        return lastHit;
+    }
+    
+    
 
 }

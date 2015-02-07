@@ -49,6 +49,7 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext>, Dis
     private OrthographicCamera camera = null;
     private TiledMap map = null;
     private TiledMapRenderer mapRenderer = null;
+    private static final String LEVEL_NAME = "map/test.tmx";
 
     private final AssetManager assetManager;
 
@@ -56,7 +57,7 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext>, Dis
         this.assetManager = assetManager;
 
         assetManager.setLoader(TiledMap.class, new TmxMapLoader(new InternalFileHandleResolver()));
-        assetManager.load("map/test.tmx", TiledMap.class);
+        assetManager.load(LEVEL_NAME, TiledMap.class);
         assetManager.finishLoading();
     }
 
@@ -92,7 +93,7 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext>, Dis
             map.dispose();
             map = null;
         }
-        map = assetManager.get("map/test.tmx");
+        map = assetManager.get(LEVEL_NAME);
         mapRenderer = new OrthogonalTiledMapRenderer(map, 1f);
 
         MapBodyManager mbm = new MapBodyManager(getWorld(), 1, null, 1);
