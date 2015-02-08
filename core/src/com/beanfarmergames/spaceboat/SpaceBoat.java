@@ -63,6 +63,7 @@ public class SpaceBoat implements Screen {
     private List<Player> players = new ArrayList<Player>();
 
     private Vector2 spawn = null;
+    private Texture[] healthTexture = new Texture[3];
 
     enum GameState {
         WaitingForPlayers, Playing, MissionComplete
@@ -96,6 +97,10 @@ public class SpaceBoat implements Screen {
         gameState = GameState.WaitingForPlayers;
 
         spawn = new Vector2(x / 2, y / 2);
+        
+        healthTexture[0] = new Texture("art/hud_heartEmpty.png");
+        healthTexture[1] = new Texture("art/hud_heartHalf.png");
+        healthTexture[2] = new Texture("art/hud_heartFull.png");
     }
 
     public void spawn(Boat boat) {
@@ -267,17 +272,44 @@ public class SpaceBoat implements Screen {
         matrix.setToOrtho2D(0, 0, width, height);
         renderer.setProjectionMatrix(matrix);
 
-        batch.begin();
-        int yOffset = 50;
-        for (Player player : players) {
-            TextBounds bounds = font.draw(batch, player.getName(), 50, yOffset);
-            yOffset += bounds.height * 1.5;
-        }
-
-        batch.end();
+        renderPlayerHud();
 
         renderMissionScreen();
 
+    }
+
+    private void renderPlayerHud() {
+        batch.begin();
+        int xOffset = 50;
+        int yOffset = 50;
+        float lineWidth = 1.5f;
+        int iconWidth = healthTexture[0].getWidth() / 2;
+        int iconHeight = healthTexture[0].getHeight() / 2;
+        for (Player player : players) {
+            TextBounds bounds = font.draw(batch, player.getName(), xOffset, yOffset);
+            
+            Boat boat = player.getBoat();
+            if (boat != null) {
+                
+                int healthXOffset = (int) (bounds.width + xOffset + 10);
+                for (int i = 0; i < boat.getMaxHealth(); i++) {
+                    float health = boat.getHealth();
+                    int healthIcon = 0; 
+                    if (health - i >= 1) {
+                        healthIcon = 2;
+                    } else if (health - i >= 0.5) {
+                        healthIcon = 1;
+                    }
+                    
+                    batch.draw(healthTexture[healthIcon], healthXOffset, yOffset - bounds.height, iconWidth, iconHeight);
+                    healthXOffset += iconWidth;
+                }
+            }
+            
+            yOffset += Math.max(bounds.height * lineWidth, iconHeight * lineWidth);
+        }
+
+        batch.end();
     }
 
     private void renderClouds() {

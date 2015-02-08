@@ -12,4 +12,7 @@ public interface GameEntity {
     
     public boolean canTractor();
     public void hitWithLaser(CollisionRecord cr, long miliseconds);
+    
+    public int getMaxHealth();
+    public float getHealth();
 }

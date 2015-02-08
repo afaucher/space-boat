@@ -59,12 +59,14 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
     private final Fixture left, right;
     private final SpriteBatch batch;
     private CollisionRecord lastLaserHit = null;
-    
-    private static float MAX_HEALTH = 3;
+
+    private static int MAX_HEALTH = 3;
     private static float LASER_DAMAGE_PER_SECOND = MAX_HEALTH / 2.0f;
     private float health = MAX_HEALTH;
 
     private ParticleEffect[] jetEffect = new ParticleEffect[2];
+    private ParticleEffect smokeEffect = new ParticleEffect();
+    private ParticleEffect deathEffect = new ParticleEffect();
     private Texture ship = new Texture("art/ship.png");
     private EmissionSource source = new EmissionSource();
 
@@ -119,6 +121,9 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
             jetEffect[i].load(Gdx.files.internal("particles/jet.p"), Gdx.files.internal(""));
             jetEffect[i].start();
         }
+
+        smokeEffect.load(Gdx.files.internal("particles/smoke.p"), Gdx.files.internal(""));
+        deathEffect.load(Gdx.files.internal("particles/boat_death.p"), Gdx.files.internal(""));
     }
 
     public void dispose() {
@@ -186,6 +191,11 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
             batch.setTransformMatrix(new Matrix4());
 
         } else if (RenderLayer.EFFECTS.equals(renderContext.getRenderLayer())) {
+
+            batch.begin();
+            smokeEffect.draw(batch);
+            deathEffect.draw(batch);
+            batch.end();
 
             renderJet();
 
@@ -276,19 +286,20 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
             AxisControl rightAxis = controls.getRight();
             l = leftAxis.getX();
             r = rightAxis.getX();
-            //We blend the controls together to avoid spinning in place
+            // We blend the controls together to avoid spinning in place
             float blended = (r + l) / 2;
             float blend = STEERING_BLENDING_FACTOR;
             l = l * blend + blended * (1 - blend);
             r = r * blend + blended * (1 - blend);
-    
-            
+
             applyAxisThrustToBody(body, l, miliseconds, left);
             applyAxisThrustToBody(body, r, miliseconds, right);
         }
 
         // Jets
         float deltaSeconds = miliseconds / 1000.0f;
+        updateSmokeEffect(deltaSeconds);
+
         updateJetEffect(jetEffect[0], left, l, deltaSeconds);
         updateJetEffect(jetEffect[1], right, r, deltaSeconds);
 
@@ -296,7 +307,7 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
 
         updateLaser(miliseconds);
     }
-    
+
     private boolean laserEabled() {
         return controls.getLaser().isEnabled() && isAlive();
     }
@@ -321,13 +332,13 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
             lastLaserHit = new CollisionRecord(null, null, dest.cpy(), null, 1);
             return;
         }
-        
+
         GameEntity hitGameEntity = lastLaserHit.getGameEntity();
         if (hitGameEntity != null) {
             hitGameEntity.hitWithLaser(lastLaserHit, miliseconds);
         }
     }
-    
+
     private boolean tractorEnabled() {
         return controls.getTractor().isEnabled() && isAlive();
     }
@@ -384,29 +395,40 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
         pe.update(deltaSeconds);
     }
 
+    private void updateSmokeEffect(float deltaSeconds) {
+        Vector2 pos = body.getPosition();
+        smokeEffect.setPosition(pos.x, pos.y);
+        smokeEffect.update(deltaSeconds);
+        deathEffect.setPosition(pos.x, pos.y);
+        deathEffect.update(deltaSeconds);
+    }
+
     @Override
     public boolean canTractor() {
         return true;
     }
-    
+
     public void damage(float maxDamage) {
         if (health > 0) {
             health = Math.max(0, health - maxDamage);
+        } else {
+            // Already crispy
+            return;
         }
-        
-        if (health == 0) {
-            //We just killed player, take extra actions
-            
-            //TODO: No idea if this does anything yet
+
+        if (health <= 0) {
+            // We just killed player, take extra actions
+            deathEffect.start();
+            // TODO: No idea if this does anything yet
             jetEffect[0].allowCompletion();
             jetEffect[1].allowCompletion();
+        } else {
+            smokeEffect.start();
         }
     }
-    
+
     public boolean isAlive() {
-        //return health > 0;
-        //FIXME!!!
-        return true;
+        return health > 0;
     }
 
     @Override
@@ -417,14 +439,24 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
         if (!aliveBefore) {
             return;
         }
-        
+
         float maxDamageDone = LASER_DAMAGE_PER_SECOND * miliseconds / 1000f;
         damage(maxDamageDone);
     }
-    
+
     @Override
     public EntityType getEntityType() {
         return EntityType.BOAT;
+    }
+
+    @Override
+    public int getMaxHealth() {
+        return MAX_HEALTH;
+    }
+
+    @Override
+    public float getHealth() {
+        return health;
     }
 
 }

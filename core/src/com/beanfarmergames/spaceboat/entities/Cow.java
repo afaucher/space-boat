@@ -140,4 +140,14 @@ public class Cow implements UpdateCallback, RenderCallback<RenderContext>, Dispo
         return EntityType.COW;
     }
 
+    @Override
+    public int getMaxHealth() {
+        return 1;
+    }
+
+    @Override
+    public float getHealth() {
+        return 1;
+    }
+
 }

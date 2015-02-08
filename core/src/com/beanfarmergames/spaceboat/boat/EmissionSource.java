@@ -28,6 +28,11 @@ public class EmissionSource implements RayCastCallback {
 
     @Override
     public float reportRayFixture(Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
+        //Avoid self collisions.
+        if (fixture.getBody().equals(origin)) {
+            return -1;
+        }
+        
         GameEntity hit = null;
 
         if (fixture.getUserData() != null) {

@@ -14,6 +14,7 @@ import com.beanfarmergames.spaceboat.Player;
 import com.beanfarmergames.spaceboat.SpaceBoat;
 import com.beanfarmergames.spaceboat.boat.Boat;
 
+//TODO: This code is untested.
 public class SpaceBoatController implements ControllerListener {
     private static final String TAG = "SpaceBoatController";
     private SpaceBoat sb;
