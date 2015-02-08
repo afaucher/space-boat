@@ -7,6 +7,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.maps.Map;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.objects.CircleMapObject;
@@ -30,14 +31,16 @@ import com.beanfarmergames.spaceboat.RenderContext;
 import com.beanfarmergames.spaceboat.RenderLayer;
 import com.beanfarmergames.spaceboat.boat.Boat;
 import com.beanfarmergames.spaceboat.entities.Cow;
+import com.beanfarmergames.spaceboat.mission.MapConstants;
 import com.siondream.core.physics.MapBodyManager;
 
 public class Field implements UpdateCallback, RenderCallback<RenderContext>, Disposable {
+    private static final String TAG = "Field";
 
     private World world = null;
     public static final float G = -0.001f;
     // private static final float WORLD_STEPS_MILISECOND = 0.1f;
-
+    
     private ListCallbackHandler<UpdateCallback> updateCallbacks = new ListCallbackHandler<UpdateCallback>();
     private ListCallbackHandler<RenderCallback<RenderContext>> renderCallbacks = new ListCallbackHandler<RenderCallback<RenderContext>>();
     private ListCallbackHandler<Disposable> disposeCallbacks = new ListCallbackHandler<Disposable>();
@@ -49,16 +52,21 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext>, Dis
     private OrthographicCamera camera = null;
     private TiledMap map = null;
     private TiledMapRenderer mapRenderer = null;
-    private static final String LEVEL_NAME = "map/test.tmx";
+    private final String levelName;
 
     private final AssetManager assetManager;
 
-    public Field(AssetManager assetManager) {
+    public Field(AssetManager assetManager, String levelName) {
         this.assetManager = assetManager;
+        this.levelName = levelName;
 
         assetManager.setLoader(TiledMap.class, new TmxMapLoader(new InternalFileHandleResolver()));
-        assetManager.load(LEVEL_NAME, TiledMap.class);
+        assetManager.load(levelName, TiledMap.class);
         assetManager.finishLoading();
+    }
+    
+    public Map getMap() {
+        return map;
     }
 
     public Rectangle getFieldExtents() {
@@ -93,15 +101,15 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext>, Dis
             map.dispose();
             map = null;
         }
-        map = assetManager.get(LEVEL_NAME);
+        map = assetManager.get(levelName);
         mapRenderer = new OrthogonalTiledMapRenderer(map, 1f);
 
         MapBodyManager mbm = new MapBodyManager(getWorld(), 1, null, 1);
         mbm.createPhysics(map);
         
-        MapLayer gameObjectsLayer = map.getLayers().get("gameobjects");
+        MapLayer gameObjectsLayer = map.getLayers().get(MapConstants.MAP_GAME_OBJECTS_LAYER);
         for (MapObject mapObject : gameObjectsLayer.getObjects()) {
-            if ("cow".equals(mapObject.getProperties().get("type"))) {
+            if (MapConstants.OBJECT_TYPE_COW.equals(mapObject.getProperties().get(MapConstants.OBJECT_TYPE))) {
                 //mapObject.getProperties().g
                 //TODO: Get x,y
                 if (mapObject instanceof CircleMapObject) {
@@ -112,6 +120,8 @@ public class Field implements UpdateCallback, RenderCallback<RenderContext>, Dis
                     EllipseMapObject elipseMapObject = (EllipseMapObject)mapObject;
                     Vector2 position = new Vector2(elipseMapObject.getEllipse().x, elipseMapObject.getEllipse().y);
                     Cow cow = new Cow(this, position);
+                } else {
+                    Gdx.app.log(TAG, "Unknown map object: " + mapObject.getName());
                 }
             }
                 

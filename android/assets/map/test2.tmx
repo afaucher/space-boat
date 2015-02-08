@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="18" height="10" tilewidth="70" tileheight="70" nextobjectid="90">
+ <tileset firstgid="1" name="tiles_spritesheet" tilewidth="70" tileheight="70" spacing="1">
+  <image source="tiles_spritesheet.png" width="852" height="856"/>
+  <tile id="50">
+   <properties>
+    <property name="TestProp" value="foo"/>
+   </properties>
+  </tile>
+ </tileset>
+ <objectgroup name="physics">
+  <object id="18" x="630" y="350" width="210" height="70"/>
+  <object id="19" x="490" y="560" width="210" height="70"/>
+  <object id="20" x="560" y="490" width="70" height="70"/>
+  <object id="21" x="630" y="630" width="70" height="70"/>
+  <object id="23" x="0" y="0" width="70" height="70"/>
+  <object id="24" x="0" y="630" width="70" height="70"/>
+  <object id="41" x="0" y="560" width="350" height="70"/>
+  <object id="42" x="140" y="490">
+   <polygon points="0,0 70,0 140,70 70,70"/>
+  </object>
+  <object id="68" x="210" y="350" width="140" height="70"/>
+  <object id="85" x="700" y="560">
+   <polygon points="0,0 140,140 0,140"/>
+  </object>
+  <object id="87" x="350" y="402.5" width="280" height="17.5"/>
+  <object id="88" x="1120" y="700">
+   <polygon points="0,0 140,0 140,-140"/>
+  </object>
+ </objectgroup>
+ <objectgroup name="gameobjects">
+  <object id="26" type="cow" x="192.5" y="87.5">
+   <ellipse/>
+  </object>
+  <object id="29" type="cow" x="367.5" y="105">
+   <ellipse/>
+  </object>
+  <object id="30" type="cow" x="507.5" y="87.5">
+   <ellipse/>
+  </object>
+  <object id="31" x="192.5" y="87.5">
+   <ellipse/>
+  </object>
+  <object id="33" x="665" y="507.5">
+   <ellipse/>
+  </object>
+  <object id="34" type="cow" x="665" y="507.5">
+   <ellipse/>
+  </object>
+  <object id="35" x="17.5" y="227.5">
+   <ellipse/>
+  </object>
+  <object id="36" type="cow" x="17.5" y="227.5">
+   <ellipse/>
+  </object>
+  <object id="37" x="35" y="280">
+   <ellipse/>
+  </object>
+  <object id="38" type="cow" x="35" y="280">
+   <ellipse/>
+  </object>
+  <object id="39" x="87.5" y="315">
+   <ellipse/>
+  </object>
+  <object id="40" type="cow" x="87.5" y="315">
+   <ellipse/>
+  </object>
+  <object id="84" type="cow" x="595" y="35">
+   <ellipse/>
+  </object>
+ </objectgroup>
+ <layer name="water" width="18" height="10">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4D2IJAAJhboE8AAAR8EAQ==
+  </data>
+ </layer>
+ <layer name="foreground" width="18" height="10">
+  <data encoding="base64" compression="zlib">
+   eJwzYBgF9AbZQJwAxOZoWA+ILYHYBY/eJjxyziS4oQ9KtwNxB5qcHxD7EGlOFRquRpILQxLPx2NGMhC7E2GXNRCn4DALZEYrEAMAgjAMOw==
+  </data>
+ </layer>
+ <objectgroup name="zones">
+  <object id="89" name="water_zone" x="770" y="647.5" width="420" height="52.5"/>
+ </objectgroup>
+</map>

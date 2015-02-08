@@ -1,4 +1,4 @@
-package com.beanfarmergames.spaceboat;
+package com.beanfarmergames.spaceboat.controls;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -7,6 +7,8 @@ import java.util.Map;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.beanfarmergames.common.callbacks.UpdateCallback;
+import com.beanfarmergames.spaceboat.Player;
+import com.beanfarmergames.spaceboat.SpaceBoat;
 import com.beanfarmergames.spaceboat.boat.Boat;
 import com.beanfarmergames.spaceboat.boat.BoatControl;
 import com.beanfarmergames.spaceboat.net.ControlPad;
@@ -41,7 +43,7 @@ public class SpaceBoatServer extends Listener implements UpdateCallback {
         sb.getUpdateCallbackHandler().registerCallback(this);
     }
 
-    public void steerBoatControl(Vector2 v, BoatControl bc) {
+    public static void steerBoatControl(Vector2 v, BoatControl bc) {
         /**
          * 0,1 1,1 1,0
          * 

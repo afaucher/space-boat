@@ -18,9 +18,10 @@ import com.beanfarmergames.common.callbacks.RenderCallback;
 import com.beanfarmergames.common.callbacks.UpdateCallback;
 import com.beanfarmergames.spaceboat.RenderContext;
 import com.beanfarmergames.spaceboat.RenderLayer;
+import com.beanfarmergames.spaceboat.boat.CollisionRecord;
 import com.beanfarmergames.spaceboat.field.Field;
 
-public class Cow implements UpdateCallback, RenderCallback<RenderContext>, Disposable, CollisionData {
+public class Cow implements UpdateCallback, RenderCallback<RenderContext>, Disposable, GameEntity {
     private final Body body;
     private SpriteBatch batch = null;
     private final Field field;
@@ -68,10 +69,10 @@ public class Cow implements UpdateCallback, RenderCallback<RenderContext>, Dispo
         body.setBullet(true);
         body.setAngularDamping(0.01f);
         body.setLinearDamping(0.005f);
-
+        body.setUserData(this);
         body.setType(BodyDef.BodyType.DynamicBody);
         
-        attachShape(body, new Vector2(), COW_RADIUS, this);
+        attachShape(body, new Vector2(), COW_RADIUS, null);
 
         batch = new SpriteBatch();
         
@@ -126,6 +127,17 @@ public class Cow implements UpdateCallback, RenderCallback<RenderContext>, Dispo
     @Override
     public boolean canTractor() {
         return true;
+    }
+
+    @Override
+    public void hitWithLaser(CollisionRecord cr, long miliseconds) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.COW;
     }
 
 }

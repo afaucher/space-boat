@@ -5,7 +5,7 @@ import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.RayCastCallback;
 import com.badlogic.gdx.physics.box2d.World;
-import com.beanfarmergames.spaceboat.entities.CollisionData;
+import com.beanfarmergames.spaceboat.entities.GameEntity;
 
 public class EmissionSource implements RayCastCallback {
 
@@ -28,12 +28,12 @@ public class EmissionSource implements RayCastCallback {
 
     @Override
     public float reportRayFixture(Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
-        CollisionData hit = null;
+        GameEntity hit = null;
 
         if (fixture.getUserData() != null) {
-            hit = (CollisionData) fixture.getUserData();
+            hit = (GameEntity) fixture.getUserData();
         } else {
-            hit = (CollisionData) fixture.getBody().getUserData();
+            hit = (GameEntity) fixture.getBody().getUserData();
         }
         
         lastHit = new CollisionRecord(hit, fixture, point, normal, fraction);

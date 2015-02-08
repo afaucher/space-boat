@@ -2,14 +2,14 @@ package com.beanfarmergames.spaceboat.boat;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Fixture;
-import com.beanfarmergames.spaceboat.entities.CollisionData;
+import com.beanfarmergames.spaceboat.entities.GameEntity;
 
 public class CollisionRecord {
     private final Fixture fixture;
     private final Vector2 point;
     private final Vector2 normal;
     private final float fraction;
-    private final CollisionData collisionData;
+    private final GameEntity gameEntity;
     
     public Fixture getFixture() {
         return fixture;
@@ -23,12 +23,12 @@ public class CollisionRecord {
     public float getFraction() {
         return fraction;
     }
-    public CollisionData getCollisionData() {
-        return collisionData;
+    public GameEntity getGameEntity() {
+        return gameEntity;
     }
-    public CollisionRecord(CollisionData collisionData, Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
+    public CollisionRecord(GameEntity gameEntity, Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
         super();
-        this.collisionData = collisionData;
+        this.gameEntity = gameEntity;
         this.fixture = fixture;
         this.point = point.cpy();
         if (normal != null) {

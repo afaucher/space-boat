@@ -1,4 +1,4 @@
-package com.beanfarmergames.spaceboat;
+package com.beanfarmergames.spaceboat.controls;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,13 +10,15 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.controllers.Controller;
 import com.badlogic.gdx.controllers.Controllers;
+import com.beanfarmergames.spaceboat.Player;
+import com.beanfarmergames.spaceboat.SpaceBoat;
 import com.beanfarmergames.spaceboat.boat.Boat;
 import com.beanfarmergames.spaceboat.debug.DebugSettings;
 
 public class SpaceBoatKeyboard implements InputProcessor {
     
     private final SpaceBoat sb;
-    private static final float MAX_KEYBOARD_THRUST = 0.6f;
+    private static final float MAX_KEYBOARD_THRUST = 0.55f;
     
     private Map<Integer, Player> mappingToPlayer = new HashMap<Integer, Player>();
     
@@ -51,15 +53,10 @@ public class SpaceBoatKeyboard implements InputProcessor {
         
         bindings.add(new KeyBinding(Input.Keys.W, Input.Keys.Q, Input.Keys.R, Input.Keys.T));
         bindings.add(new KeyBinding(Input.Keys.O, Input.Keys.I, Input.Keys.P, Input.Keys.LEFT_BRACKET));
-        
-        for(Controller controller: Controllers.getControllers()) {
-            Gdx.app.log("Controller", controller.getName());
-         }
     }
 
     @Override
     public boolean keyTyped(char character) {
-        // TODO Auto-generated method stub
         return false;
     }
 
@@ -155,31 +152,26 @@ public class SpaceBoatKeyboard implements InputProcessor {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean mouseMoved(int screenX, int screenY) {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean scrolled(int amount) {
-        // TODO Auto-generated method stub
         return false;
     }
 

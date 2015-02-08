@@ -33,24 +33,40 @@ import com.beanfarmergames.common.callbacks.UpdateCallback;
 import com.beanfarmergames.common.callbacks.impl.ListCallbackHandler;
 import com.beanfarmergames.spaceboat.boat.Boat;
 import com.beanfarmergames.spaceboat.field.Field;
+import com.beanfarmergames.spaceboat.mission.Mission;
+import com.beanfarmergames.spaceboat.mission.MissionOne;
+import com.beanfarmergames.spaceboat.mission.objective.Objective;
 import com.siondream.core.physics.MapBodyManager;
 
 public class SpaceBoat implements Screen {
-    
+
+    // Clouds
+    private static final float CLOUD_OFFSCREEN_DIST = 200;
     private SpriteBatch batch = null;
     private Texture[] img = new Texture[3];
     private Vector2 clouds[];
+
     private BitmapFont font = new BitmapFont();
     private ShapeRenderer renderer = null;
-
-    private Field field;
+    private AssetManager assetManager;
     private RenderContextImpl renderContext = new RenderContextImpl();
+    private Random rand = new Random();
+
+    // Seconds between having enough players and starting
+    private static final float READY_TIMEOUT_SECONDS = 10;
+
+    private Mission mission;
+    private Field field;
+    private GameState gameState;
+    private float gameStateCounter = 0;
+
     private List<Player> players = new ArrayList<Player>();
 
     private Vector2 spawn = null;
-    private Random rand = new Random();
-    
-    private AssetManager assetManager;
+
+    enum GameState {
+        WaitingForPlayers, Playing, MissionComplete
+    };
 
     private ListCallbackHandler<UpdateCallback> updateCallbacks = new ListCallbackHandler<UpdateCallback>();
 
@@ -62,11 +78,9 @@ public class SpaceBoat implements Screen {
         return players;
     }
 
-    private static final float CLOUD_OFFSCREEN_DIST = 200;
-
     public SpaceBoat() {
         assetManager = new AssetManager();
-        
+
         int x = Gdx.app.getGraphics().getWidth();
         int y = Gdx.app.getGraphics().getHeight();
 
@@ -75,12 +89,15 @@ public class SpaceBoat implements Screen {
         batch = new SpriteBatch();
         buildClouds(x, y);
 
-        field = new Field(assetManager);
+        mission = new MissionOne();
+        field = new Field(assetManager, mission.getMapName());
+        mission.loadMission(field);
         field.resetLevel();
+        gameState = GameState.WaitingForPlayers;
 
         spawn = new Vector2(x / 2, y / 2);
     }
-    
+
     public void spawn(Boat boat) {
         boat.spawn(spawn);
     }
@@ -130,14 +147,99 @@ public class SpaceBoat implements Screen {
         });
     }
 
-    @Override
-    public void render(float delta) {
+    /**
+     * @return Number of additional players needed to start the game. Zero if
+     *         ready.
+     */
+    private int getPlayersNeeded() {
+        int needed = mission.getRequiredNumberOfPlayers() - players.size();
+        if (needed < 0) {
+            needed = 0;
+        }
+        return needed;
+    }
+
+    private void updateGameState(float delta) {
         float tickTimeSeconds = Gdx.graphics.getDeltaTime();
         long tickTimeMiliseconds = (long) (tickTimeSeconds * 1000);
-        field.updateCallback(tickTimeMiliseconds);
+
+        switch (gameState) {
+        case WaitingForPlayers:
+            if (getPlayersNeeded() <= 0) {
+                gameStateCounter += delta;
+                if (gameStateCounter > READY_TIMEOUT_SECONDS) {
+                    gameStateCounter = READY_TIMEOUT_SECONDS;
+                    gameState = GameState.Playing;
+                }
+            } else {
+                gameStateCounter = 0;
+            }
+            break;
+        case Playing:
+            mission.updateCallback(tickTimeMiliseconds);
+            if (mission.isMissionComplete()) {
+                gameState = GameState.MissionComplete;
+            }
+            field.updateCallback(tickTimeMiliseconds);
+            break;
+        case MissionComplete:
+            break;
+        }
+
+        // General callbacks run all the time
         for (UpdateCallback callback : updateCallbacks.getCallbacks()) {
             callback.updateCallback(tickTimeMiliseconds);
         }
+    }
+
+    private void renderMissionScreen() {
+        batch.begin();
+        int width = Gdx.graphics.getWidth();
+        int height = Gdx.graphics.getHeight();
+        int horizontalPadding = 200;
+        int xOffset = horizontalPadding;
+        int yOffset = height - 50;
+        int wrapWidth = width - horizontalPadding * 2;
+
+        TextBounds bounds = null;
+        switch (gameState) {
+        case WaitingForPlayers: {
+            bounds = font.drawWrapped(batch, "Mission: " + mission.getMissionName(), xOffset, yOffset, wrapWidth);
+            yOffset -= bounds.height * 1.5;
+            int needed = getPlayersNeeded();
+            if (needed > 0) {
+                bounds = font.drawWrapped(batch, "Waiting for " + needed + " more players.", xOffset, yOffset,
+                        wrapWidth);
+                yOffset -= bounds.height * 1.5;
+            } else {
+                int secondsRemaining = (int) (READY_TIMEOUT_SECONDS - gameStateCounter);
+                bounds = font.drawWrapped(batch, "Starting in " + secondsRemaining + " seconds.", xOffset, yOffset,
+                        wrapWidth);
+                yOffset -= bounds.height * 1.5;
+            }
+            break;
+        }
+        case Playing:
+            break;
+        case MissionComplete: {
+            bounds = font.drawWrapped(batch, mission.getMissionName(), xOffset, yOffset, wrapWidth);
+            yOffset -= bounds.height * 1.5;
+            for (Objective objective : mission.getObjectives()) {
+                String objectiveSummary = "   " + objective.getObjectiveName() + ": "
+                        + (objective.getObjectiveCompletion() ? "Complete" : "Incomplete");
+                bounds = font.drawWrapped(batch, objectiveSummary, xOffset, yOffset, wrapWidth);
+                yOffset -= bounds.height * 1.5;
+            }
+            break;
+        }
+        }
+        batch.end();
+    }
+
+    @Override
+    public void render(float delta) {
+
+        updateGameState(delta);
 
         // Color matches platformer pack from: http://open.commonly.cc/
         Gdx.gl.glClearColor(208f / 255, 244f / 255, 247f / 255, 1);
@@ -150,7 +252,6 @@ public class SpaceBoat implements Screen {
 
         // Render Callbacks
 
-        renderContext.setBoat(null);
         renderContext.setRenderer(renderer);
         for (RenderLayer renderLayer : RenderLayer.values()) {
             renderContext.setRenderLayer(renderLayer);
@@ -172,8 +273,11 @@ public class SpaceBoat implements Screen {
             TextBounds bounds = font.draw(batch, player.getName(), 50, yOffset);
             yOffset += bounds.height * 1.5;
         }
+
         batch.end();
-        
+
+        renderMissionScreen();
+
     }
 
     private void renderClouds() {

@@ -28,10 +28,11 @@ import com.beanfarmergames.common.physics.PhysicsUtil;
 import com.beanfarmergames.spaceboat.RenderContext;
 import com.beanfarmergames.spaceboat.RenderLayer;
 import com.beanfarmergames.spaceboat.debug.DebugSettings;
-import com.beanfarmergames.spaceboat.entities.CollisionData;
+import com.beanfarmergames.spaceboat.entities.GameEntity;
+import com.beanfarmergames.spaceboat.entities.GameEntity.EntityType;
 import com.beanfarmergames.spaceboat.field.Field;
 
-public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disposable, CollisionData {
+public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disposable, GameEntity {
 
     private static final float JET_EMISSION_RATE = 100.0f;
     private static final int JET_SPREAD_ANGLE_DEG = 10;
@@ -44,7 +45,7 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
     private static final float TRACTOR_SCALE = 100;
     private static final float TRACTOR_HALF_ARC = 0.2f;
     private static final float TRACATOR_HALF_ARC_SEGMENTS = 10;
-    private static final float TRACTOR_FORCE = 0.25f;
+    private static final float TRACTOR_FORCE = 0.3f;
     private static final float MIN_DISTANCE = 20f;
 
     // LASER
@@ -58,6 +59,10 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
     private final Fixture left, right;
     private final SpriteBatch batch;
     private CollisionRecord lastLaserHit = null;
+    
+    private static float MAX_HEALTH = 3;
+    private static float LASER_DAMAGE_PER_SECOND = MAX_HEALTH / 2.0f;
+    private float health = MAX_HEALTH;
 
     private ParticleEffect[] jetEffect = new ParticleEffect[2];
     private Texture ship = new Texture("art/ship.png");
@@ -264,19 +269,23 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
 
     @Override
     public void updateCallback(long miliseconds) {
-
-        AxisControl leftAxis = controls.getLeft();
-        AxisControl rightAxis = controls.getRight();
-        // We blend the controls together to avoid spinning in place
-        float l = leftAxis.getX();
-        float r = rightAxis.getX();
-        float blended = (r + l) / 2;
-        float blend = STEERING_BLENDING_FACTOR;
-        l = l * blend + blended * (1 - blend);
-        r = r * blend + blended * (1 - blend);
-
-        applyAxisThrustToBody(body, l, miliseconds, left);
-        applyAxisThrustToBody(body, r, miliseconds, right);
+        float l = 0;
+        float r = 0;
+        if (isAlive()) {
+            AxisControl leftAxis = controls.getLeft();
+            AxisControl rightAxis = controls.getRight();
+            l = leftAxis.getX();
+            r = rightAxis.getX();
+            //We blend the controls together to avoid spinning in place
+            float blended = (r + l) / 2;
+            float blend = STEERING_BLENDING_FACTOR;
+            l = l * blend + blended * (1 - blend);
+            r = r * blend + blended * (1 - blend);
+    
+            
+            applyAxisThrustToBody(body, l, miliseconds, left);
+            applyAxisThrustToBody(body, r, miliseconds, right);
+        }
 
         // Jets
         float deltaSeconds = miliseconds / 1000.0f;
@@ -285,12 +294,16 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
 
         updateTractor();
 
-        updateLaser();
+        updateLaser(miliseconds);
+    }
+    
+    private boolean laserEabled() {
+        return controls.getLaser().isEnabled() && isAlive();
     }
 
-    private void updateLaser() {
+    private void updateLaser(long miliseconds) {
 
-        boolean laserEnabled = controls.getLaser().isEnabled();
+        boolean laserEnabled = laserEabled();
         if (!laserEnabled) {
             lastLaserHit = null;
             return;
@@ -308,12 +321,19 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
             lastLaserHit = new CollisionRecord(null, null, dest.cpy(), null, 1);
             return;
         }
-
-        // TODO: Cook!
+        
+        GameEntity hitGameEntity = lastLaserHit.getGameEntity();
+        if (hitGameEntity != null) {
+            hitGameEntity.hitWithLaser(lastLaserHit, miliseconds);
+        }
+    }
+    
+    private boolean tractorEnabled() {
+        return controls.getTractor().isEnabled() && isAlive();
     }
 
     private void updateTractor() {
-        boolean tractorEnabled = controls.getTractor().isEnabled();
+        boolean tractorEnabled = tractorEnabled();
         if (!tractorEnabled) {
             return;
         }
@@ -327,16 +347,15 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
             source.emit(field.getWorld(), body, src, dest);
 
             CollisionRecord cr = source.getLastHit();
-            if (cr == null || cr.getCollisionData() == null) {
+            if (cr == null || cr.getGameEntity() == null) {
                 continue;
             }
 
             float dist = src.dst(cr.getPoint());
-            if (cr.getCollisionData().canTractor() && dist > MIN_DISTANCE) {
+            if (cr.getGameEntity().canTractor() && dist > MIN_DISTANCE) {
                 Body hitBody = cr.getFixture().getBody();
 
                 Vector2 force = cr.getNormal().cpy().scl(TRACTOR_FORCE);
-                Vector2 originForce = force.cpy().scl(-1);
 
                 hitBody.applyForceToCenter(force, true);
             }
@@ -368,6 +387,44 @@ public class Boat implements UpdateCallback, RenderCallback<RenderContext>, Disp
     @Override
     public boolean canTractor() {
         return true;
+    }
+    
+    public void damage(float maxDamage) {
+        if (health > 0) {
+            health = Math.max(0, health - maxDamage);
+        }
+        
+        if (health == 0) {
+            //We just killed player, take extra actions
+            
+            //TODO: No idea if this does anything yet
+            jetEffect[0].allowCompletion();
+            jetEffect[1].allowCompletion();
+        }
+    }
+    
+    public boolean isAlive() {
+        //return health > 0;
+        //FIXME!!!
+        return true;
+    }
+
+    @Override
+    public void hitWithLaser(CollisionRecord cr, long miliseconds) {
+        // TODO Auto-generated method stub
+
+        boolean aliveBefore = isAlive();
+        if (!aliveBefore) {
+            return;
+        }
+        
+        float maxDamageDone = LASER_DAMAGE_PER_SECOND * miliseconds / 1000f;
+        damage(maxDamageDone);
+    }
+    
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.BOAT;
     }
 
 }
